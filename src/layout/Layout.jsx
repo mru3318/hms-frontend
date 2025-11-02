@@ -1,19 +1,18 @@
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
+import { useState } from "react";
 
 const Layout = () => {
-  const location = useLocation();
-
-  // Ensure the mobile hamburger always toggles the sidebar even if React mounts
-  // after the page DOMContentLoaded handlers ran. This avoids relying on
-  // external jQuery/bootstrap scripts for the offcanvas toggle.
+  // Mobile sidebar state and toggle handler (CSS-safe)
+  const [isSidebarActive, setIsSidebarActive] = useState(false);
+  // Submenu open states (HR, Doctor)
+  const [isHRMenuOpen, setIsHRMenuOpen] = useState(false);
+  const [isDoctorMenuOpen, setIsDoctorMenuOpen] = useState(false);
   const handleMobileToggle = (e) => {
     e && e.preventDefault && e.preventDefault();
-    const sidebar = document.getElementById("sidebar");
-    if (sidebar) sidebar.classList.toggle("active");
+    setIsSidebarActive((prev) => !prev);
   };
 
-  const isUiBasicOpen = location.pathname.startsWith("/add-new-employee");
-  const isFormsOpen = location.pathname.startsWith("/add-doctor");
+  // Route-based auto-open disabled to avoid unintended active background
 
   return (
     <div className="container-scroller">
@@ -106,7 +105,12 @@ const Layout = () => {
       {/* partial */}
       <div className="container-fluid page-body-wrapper">
         {/* partial:partials/_sidebar.html */}
-        <nav className="sidebar sidebar-offcanvas" id="sidebar">
+        <nav
+          className={`sidebar sidebar-offcanvas${
+            isSidebarActive ? " active" : ""
+          }`}
+          id="sidebar"
+        >
           <ul className="nav">
             <li className="nav-item navbar-brand-mini-wrapper mt-3">
               <a
@@ -136,18 +140,18 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#ui-basic"
-                aria-expanded={isUiBasicOpen}
-                aria-controls="ui-basic"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsHRMenuOpen((prev) => !prev);
+                }}
               >
                 <span className="menu-title">Human Resources</span>
                 <i className="fa fa-users menu-icon" />
               </a>
               <div
-                className={"collapse" + (isUiBasicOpen ? " show" : "")}
+                className={"collapse" + (isHRMenuOpen ? " show" : "")}
                 id="ui-basic"
-                data-bs-parent="#sidebar"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -192,18 +196,18 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#forms"
-                aria-expanded={isFormsOpen}
-                aria-controls="forms"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsDoctorMenuOpen((prev) => !prev);
+                }}
               >
                 <span className="menu-title">Doctor</span>
                 <i className="fa fa-user-md menu-icon" />
               </a>
               <div
-                className={"collapse" + (isFormsOpen ? " show" : "")}
+                className={"collapse" + (isDoctorMenuOpen ? " show" : "")}
                 id="forms"
-                data-bs-parent="#sidebar"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
