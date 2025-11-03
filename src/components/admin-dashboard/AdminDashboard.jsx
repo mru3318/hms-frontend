@@ -6,14 +6,8 @@ const AdminDashboard = () => {
     <>
       <div className="header-toolbar d-flex justify-content-between align-items-center mt-4">
         <div className="d-flex align-items-center">
-          <a
-            className="text-decoration-none text-dark d-flex align-items-center"
-            href="#"
-          >
-            <i className="fas fa-home me-2" />
-            Home
-          </a>
-          <span className="text-muted mx-2"> / Dashboard </span>
+          
+          <span className="text-dark font-weight-bold mx-2"> Welcome Admin </span>
         </div>
         <div className="d-flex align-items-center">
           <button className="btn make-appoint rounded-pill me-2">
