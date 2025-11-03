@@ -1,18 +1,64 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
-import { useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
 
 const Layout = () => {
-  // Mobile sidebar state and toggle handler (CSS-safe)
-  const [isSidebarActive, setIsSidebarActive] = useState(false);
-  // Submenu open states (HR, Doctor)
-  const [isHRMenuOpen, setIsHRMenuOpen] = useState(false);
-  const [isDoctorMenuOpen, setIsDoctorMenuOpen] = useState(false);
-  const handleMobileToggle = (e) => {
-    e && e.preventDefault && e.preventDefault();
-    setIsSidebarActive((prev) => !prev);
+  const [openMenu, setOpenMenu] = useState(null);
+  const lastClickRef = useRef({});
+  const CLICK_THRESHOLD = 300; // ms
+
+  const handleToggleSafe = (key) => {
+    const now = Date.now();
+    const last = lastClickRef.current[key] || 0;
+    if (now - last < CLICK_THRESHOLD) return; // ignore rapid double clicks
+    lastClickRef.current[key] = now;
+    setOpenMenu(openMenu === key ? null : key);
   };
 
-  // Route-based auto-open disabled to avoid unintended active background
+  const location = useLocation();
+
+  useEffect(() => {
+    // remove any leftover 'active' classes from sidebar nav items so styles
+    // coming from CSS selectors like `.nav-item.active` do not apply.
+    const sidebar = document.getElementById("sidebar");
+    if (!sidebar) return;
+    const activeEls = sidebar.querySelectorAll(".active");
+    activeEls.forEach((el) => el.classList.remove("active"));
+    // If user is on dashboard root, ensure no sidebar menu is open by default
+    if (location && location.pathname === "/") {
+      setOpenMenu(null);
+    }
+  }, [location, openMenu]);
+
+  useEffect(() => {
+    // enforce accordion: only the collapse matching openMenu should have 'show'
+    const sidebar = document.getElementById("sidebar");
+    if (!sidebar) return;
+    const collapses = sidebar.querySelectorAll(".collapse[data-menu-key]");
+    collapses.forEach((el) => {
+      const key = el.getAttribute("data-menu-key");
+      if (openMenu === key) {
+        el.classList.add("show");
+      } else {
+        el.classList.remove("show");
+      }
+    });
+    // reset nested submenu state whenever a new main menu opens
+    // (we don't yet track openSub in this file; if present, clear it here)
+  }, [openMenu]);
+
+  // Ensure the mobile hamburger always toggles the sidebar even if React mounts
+  // after the page DOMContentLoaded handlers ran. This avoids relying on
+  // external jQuery/bootstrap scripts for the offcanvas toggle.
+  const handleMobileToggle = (e) => {
+    e && e.preventDefault && e.preventDefault();
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar) sidebar.classList.toggle("active");
+  };
+
+  // const isUiBasicOpen =
+  //   location.pathname === "/add-new-employee" ||
+  //   location.pathname === "/manage-employees";
+  // const isFormsOpen = location.pathname === "/add-doctor";
 
   return (
     <div className="container-scroller">
@@ -50,7 +96,6 @@ const Layout = () => {
             Welcome Admin
           </h5>
           <ul className="navbar-nav navbar-nav-right">
-            {/* Always show admin dropdown in header (including mobile) and place it before the mobile menu */}
             <li className="nav-item dropdown user-dropdown me-2">
               <a
                 className="nav-link dropdown-toggle"
@@ -105,12 +150,7 @@ const Layout = () => {
       {/* partial */}
       <div className="container-fluid page-body-wrapper">
         {/* partial:partials/_sidebar.html */}
-        <nav
-          className={`sidebar sidebar-offcanvas${
-            isSidebarActive ? " active" : ""
-          }`}
-          id="sidebar"
-        >
+        <nav className="sidebar sidebar-offcanvas" id="sidebar">
           <ul className="nav">
             <li className="nav-item navbar-brand-mini-wrapper mt-3">
               <a
@@ -126,13 +166,7 @@ const Layout = () => {
             </li>
             {/* ################## */}
             <li className="nav-item">
-              <NavLink
-                to="/"
-                end
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active" : "")
-                }
-              >
+              <NavLink to="/" end className="nav-link">
                 <span className="menu-title">Dashboard</span>
                 <i className="fa fa-tachometer-alt menu-icon" />
               </NavLink>
@@ -143,15 +177,15 @@ const Layout = () => {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  setIsHRMenuOpen((prev) => !prev);
+                  handleToggleSafe("hr");
                 }}
               >
                 <span className="menu-title">Human Resources</span>
                 <i className="fa fa-users menu-icon" />
               </a>
               <div
-                className={"collapse" + (isHRMenuOpen ? " show" : "")}
-                id="ui-basic"
+                className={`collapse ${openMenu === "hr" ? "show" : ""}`}
+                data-menu-key="hr"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -170,15 +204,22 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#icons"
-                aria-expanded="false"
-                aria-controls="icons"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(
+                    openMenu === "departments" ? null : "departments"
+                  );
+                }}
               >
                 <span className="menu-title">Departments</span>
                 <i className="fa fa-building menu-icon" />
               </a>
-              <div className="collapse" id="icons" data-bs-parent="#sidebar">
+              <div
+                className={`collapse ${
+                  openMenu === "departments" ? "show" : ""
+                }`}
+              >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
                     <a className="nav-link" href="#">
@@ -199,24 +240,19 @@ const Layout = () => {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  setIsDoctorMenuOpen((prev) => !prev);
+                  handleToggleSafe("doctor");
                 }}
               >
                 <span className="menu-title">Doctor</span>
                 <i className="fa fa-user-md menu-icon" />
               </a>
               <div
-                className={"collapse" + (isDoctorMenuOpen ? " show" : "")}
-                id="forms"
+                className={`collapse ${openMenu === "doctor" ? "show" : ""}`}
+                data-menu-key="doctor"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <NavLink
-                      to="/add-doctor"
-                      className={({ isActive }) =>
-                        "nav-link" + (isActive ? " active" : "")
-                      }
-                    >
+                    <NavLink to="add-doctor" className="nav-link">
                       Add Doctor
                     </NavLink>
                   </li>
@@ -231,15 +267,19 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#charts"
-                aria-expanded="false"
-                aria-controls="charts"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "patient" ? null : "patient");
+                }}
               >
                 <span className="menu-title"> Patient Management</span>
                 <i className="fa fa-procedures menu-icon" />
               </a>
-              <div className="collapse" id="charts" data-bs-parent="#sidebar">
+              <div
+                className={`collapse ${openMenu === "patient" ? "show" : ""}`}
+                data-menu-key="patient"
+              >
                 <ul className="nav flex-column sub-menu">
                   {/* OPD Management */}
                   <li className="nav-item">
@@ -345,15 +385,19 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#tables"
-                aria-expanded="false"
-                aria-controls="tables"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "schedule" ? null : "schedule");
+                }}
               >
                 <span className="menu-title">Doctor’s Schedule</span>
                 <i className="fa fa-calendar-alt menu-icon" />
               </a>
-              <div className="collapse" id="tables" data-bs-parent="#sidebar">
+              <div
+                className={`collapse ${openMenu === "schedule" ? "show" : ""}`}
+                data-menu-key="schedule"
+              >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
                     <a className="nav-link" href="#">
@@ -371,15 +415,22 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#auth"
-                aria-expanded="false"
-                aria-controls="auth"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(
+                    openMenu === "appointments" ? null : "appointments"
+                  );
+                }}
               >
                 <span className="menu-title">Appointments</span>
                 <i className="fa fa-calendar-check menu-icon" />
               </a>
-              <div className="collapse" id="auth" data-bs-parent="#sidebar">
+              <div
+                className={`collapse ${
+                  openMenu === "appointments" ? "show" : ""
+                }`}
+              >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
                     <a className="nav-link" href="#">
@@ -399,18 +450,18 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#caseManager"
-                aria-expanded="false"
-                aria-controls="caseManager"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "case" ? null : "case");
+                }}
               >
                 <span className="menu-title">Case Manager</span>
                 <i className="fa fa-briefcase-medical menu-icon" />
               </a>
               <div
-                className="collapse"
-                id="caseManager"
-                data-bs-parent="#sidebar"
+                className={`collapse ${openMenu === "case" ? "show" : ""}`}
+                data-menu-key="case"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -429,19 +480,19 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#bedManager"
-                aria-expanded="false"
-                aria-controls="bedManager"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "bed" ? null : "bed");
+                }}
               >
                 <span className="menu-title">Bed Manager</span>
                 <i className="fa fa-bed menu-icon" />
                 {/* <i class="fa-solid fa-bed-pulse"></i> */}
               </a>
               <div
-                className="collapse"
-                id="bedManager"
-                data-bs-parent="#sidebar"
+                className={`collapse ${openMenu === "bed" ? "show" : ""}`}
+                data-menu-key="bed"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -466,15 +517,19 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#reports"
-                aria-expanded="false"
-                aria-controls="reports"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "reports" ? null : "reports");
+                }}
               >
                 <span className="menu-title">Reports</span>
                 <i className="fa fa-file-medical-alt menu-icon" />
               </a>
-              <div className="collapse" id="reports" data-bs-parent="#sidebar">
+              <div
+                className={`collapse ${openMenu === "reports" ? "show" : ""}`}
+                data-menu-key="reports"
+              >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
                     <a
@@ -548,18 +603,21 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#prescriptions"
-                aria-expanded="false"
-                aria-controls="prescriptions"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(
+                    openMenu === "prescriptions" ? null : "prescriptions"
+                  );
+                }}
               >
                 <span className="menu-title">Prescriptions</span>
                 <i className="fa fa-prescription-bottle-alt menu-icon" />
               </a>
               <div
-                className="collapse"
-                id="prescriptions"
-                data-bs-parent="#sidebar"
+                className={`collapse ${
+                  openMenu === "prescriptions" ? "show" : ""
+                }`}
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -578,15 +636,19 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#pharmacy"
-                aria-expanded="false"
-                aria-controls="pharmacy"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "pharmacy" ? null : "pharmacy");
+                }}
               >
                 <span className="menu-title">Pharmacy</span>
                 <i className="fa fa-pills menu-icon" />
               </a>
-              <div className="collapse" id="pharmacy" data-bs-parent="#sidebar">
+              <div
+                className={`collapse ${openMenu === "pharmacy" ? "show" : ""}`}
+                data-menu-key="pharmacy"
+              >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
                     <a
@@ -744,18 +806,18 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#insurance"
-                aria-expanded="false"
-                aria-controls="insurance"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "insurance" ? null : "insurance");
+                }}
               >
                 <span className="menu-title">Insurance</span>
                 <i className="fa fa-shield-alt menu-icon" />
               </a>
               <div
-                className="collapse"
-                id="insurance"
-                data-bs-parent="#sidebar"
+                className={`collapse ${openMenu === "insurance" ? "show" : ""}`}
+                data-menu-key="insurance"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -853,18 +915,18 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#bloodBank"
-                aria-expanded="false"
-                aria-controls="bloodBank"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "blood" ? null : "blood");
+                }}
               >
                 <span className="menu-title">Blood Bank</span>
                 <i className="fa fa-tint menu-icon" />
               </a>
               <div
-                className="collapse"
-                id="bloodBank"
-                data-bs-parent="#sidebar"
+                className={`collapse ${openMenu === "blood" ? "show" : ""}`}
+                data-menu-key="blood"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -898,15 +960,19 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#finances"
-                aria-expanded="false"
-                aria-controls="finances"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "finances" ? null : "finances");
+                }}
               >
                 <span className="menu-title">Finances</span>
                 <i className="fa fa-wallet menu-icon" />
               </a>
-              <div className="collapse" id="finances" data-bs-parent="#sidebar">
+              <div
+                className={`collapse ${openMenu === "finances" ? "show" : ""}`}
+                data-menu-key="finances"
+              >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
                     <a className="nav-link" href="#">
@@ -929,18 +995,18 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#assetManagement"
-                aria-expanded="false"
-                aria-controls="assetManagement"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "assets" ? null : "assets");
+                }}
               >
                 <span className="menu-title">Asset Management</span>
                 <i className="fa fa-cogs menu-icon" />
               </a>
               <div
-                className="collapse"
-                id="assetManagement"
-                data-bs-parent="#sidebar"
+                className={`collapse ${openMenu === "assets" ? "show" : ""}`}
+                data-menu-key="assets"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -959,18 +1025,19 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#activities"
-                aria-expanded="false"
-                aria-controls="activities"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "activities" ? null : "activities");
+                }}
               >
                 <span className="menu-title">Activities</span>
                 <i className="fa fa-tasks menu-icon" />
               </a>
               <div
-                className="collapse"
-                id="activities"
-                data-bs-parent="#sidebar"
+                className={`collapse ${
+                  openMenu === "activities" ? "show" : ""
+                }`}
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -999,18 +1066,18 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#ambulanceManagement"
-                aria-expanded="false"
-                aria-controls="ambulanceManagement"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "ambulance" ? null : "ambulance");
+                }}
               >
                 <span className="menu-title">Ambulance Management</span>
                 <i className="fa fa-ambulance menu-icon" />
               </a>
               <div
-                className="collapse"
-                id="ambulanceManagement"
-                data-bs-parent="#sidebar"
+                className={`collapse ${openMenu === "ambulance" ? "show" : ""}`}
+                data-menu-key="ambulance"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -1039,18 +1106,18 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#healthPackages"
-                aria-expanded="false"
-                aria-controls="healthPackages"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "packages" ? null : "packages");
+                }}
               >
                 <span className="menu-title">Health Packages</span>
                 <i className="fa fa-heartbeat menu-icon" />
               </a>
               <div
-                className="collapse"
-                id="healthPackages"
-                data-bs-parent="#sidebar"
+                className={`collapse ${openMenu === "packages" ? "show" : ""}`}
+                data-menu-key="packages"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
@@ -1069,18 +1136,18 @@ const Layout = () => {
             <li className="nav-item">
               <a
                 className="nav-link"
-                data-bs-toggle="collapse"
-                href="#noticeBoard"
-                aria-expanded="false"
-                aria-controls="noticeBoard"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenMenu(openMenu === "notice" ? null : "notice");
+                }}
               >
                 <span className="menu-title">Notice Board</span>
                 <i className="fa fa-bullhorn menu-icon" />
               </a>
               <div
-                className="collapse"
-                id="noticeBoard"
-                data-bs-parent="#sidebar"
+                className={`collapse ${openMenu === "notice" ? "show" : ""}`}
+                data-menu-key="notice"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">

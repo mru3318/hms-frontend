@@ -33832,6 +33832,17 @@ div.tagsinput span.tag a {
 .sidebar .nav .nav-item .collapse {
   z-index: 999;
 }
+
+/* Ensure collapse panels are hidden by default and shown only when `.show` is present.
+   Some templates expect Bootstrap's collapse JS/CSS; this project controls sidebar
+   expansion with React state, so provide the minimal collapse rules scoped to the
+   sidebar to prevent submenu sections from appearing open by default. */
+.sidebar .collapse {
+  display: none;
+}
+.sidebar .collapse.show {
+  display: block;
+}
 .sidebar .nav .nav-item .nav-link {
   display: -webkit-box;
   display: -ms-flexbox;
@@ -34157,6 +34168,32 @@ div.tagsinput span.tag a {
 }
 .sidebar-light .sidebar .nav.sub-menu .nav-item:hover {
   background: transparent;
+}
+
+/* --- React Router NavLink compatibility overrides ---
+   NavLink renders <a> elements with the class "nav-link" and toggles an
+   "active" class based on the current route. To avoid styling the parent
+   menu headers as selected, scope active styles to submenu links only and
+   keep top-level links transparent when active/focused. */
+.sidebar .nav > .nav-item > .nav-link.active,
+.sidebar .nav > .nav-item > .nav-link:focus {
+  background: transparent;
+  color: inherit;
+}
+
+/* Prevent top-level parent items from picking a background when the li gets
+   an "active" class (e.g., due to open/collapsed state managed elsewhere). */
+.sidebar .nav .nav-item.active:not(.navbar-brand-mini-wrapper) {
+  background: transparent;
+}
+.sidebar-light .sidebar .nav .nav-item.active:not(.navbar-brand-mini-wrapper) {
+  background: transparent;
+}
+
+/* Reset title styles for active parent items to inherit rather than forcing black. */
+.sidebar .nav > .nav-item.active > .nav-link .menu-title {
+  color: inherit;
+  font-weight: inherit;
 }
 
 /* style for off-canvas menu*/
@@ -35154,6 +35191,7 @@ div.tagsinput span.tag a {
   color: #6d41c9;
   background: -webkit-linear-gradient(87deg, #6d41c9, #ea0084 55%, #ffc84e);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .social-card .card-body i {
