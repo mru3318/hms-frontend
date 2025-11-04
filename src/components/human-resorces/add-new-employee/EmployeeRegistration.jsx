@@ -8,16 +8,27 @@ import {
 } from "../../../../constants";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchStates } from "../../../features/statesSlice";
+import { fetchDepartments } from "../../../features/departmentSlice";
 import { IdProofTypeOptions } from "../../../../constants";
 import { RoleNameOptions } from "../../../../constants";
-import { registerEmployee } from "../../../features/employeeSlice";
+import {
+  registerEmployee,
+  resetEmployeeState,
+} from "../../../features/employeeSlice";
+import { use } from "react";
 
 const EmployeeRegistration = () => {
   const dispatch = useDispatch();
   const { list: states, status: statesStatus } = useSelector(
     (state) => state.states
   );
-  const departments = useSelector((state) => state.departments?.list || []);
+  const { list: departments, status: departmentsStatus } = useSelector(
+    (state) => state.departments
+  );
+
+  const { success, error, message, loading } = useSelector(
+    (state) => state.employee
+  );
 
   const [districts, setDistricts] = useState([]);
   const [passwordRules, setPasswordRules] = useState({
@@ -54,7 +65,7 @@ const EmployeeRegistration = () => {
       profilePic: null,
       bloodGroup: "",
       experience: "",
-      qualification: "",
+      qualifications: "",
       category: "",
       specialization: "",
       licenseNumber: "",
@@ -116,48 +127,103 @@ const EmployeeRegistration = () => {
           payload.doctorDto = {
             specialization: values.specialization || "",
             experience: values.experience || "",
-            qualifications: values.qualification || "", // note: server expects 'qualifications' (plural)
+            qualifications: values.qualifications || "", // note: server expects 'qualifications' (plural)
             licenseNumber: values.licenseNumber || "",
             departmentId: values.department ? Number(values.department) : 3, // default departmentId
           };
-        } else if ([7, 10, 5, 4, 6, 9, 8].includes(Number(values.role))) {
-          // Other roles - add common employee fields
-          payload.employeeDto = {
+        } // HR (role 7)
+        else if (String(values.role) === "7") {
+          payload.humanResourceDto = {
             experience: values.experience || "",
-            qualification: values.qualification || "",
+            qualifications: values.qualifications || "",
           };
+        }
 
-          if (String(values.role) === "8") {
-            // Laboratorist
-            payload.employeeDto.category = values.category || "";
+        // Accountant (role 10)
+        else if (String(values.role) === "10") {
+          payload.receptionistDto = {
+            experience: values.experience || "",
+            qualifications: values.qualifications || "",
+          };
+        }
+
+        // Lab (role 5)
+        else if (String(values.role) === "5") {
+          payload.pharmacistDto = {
+            experience: values.experience || "",
+            qualifications: values.qualifications || "",
+          };
+        }
+
+        // Head Nurse (role 4)
+        else if (String(values.role) === "4") {
+          payload.headNurseDto = {
+            experience: values.experience || "",
+            qualifications: values.qualifications || "",
+          };
+        }
+
+        // Receptionist (role 6)
+        else if (String(values.role) === "6") {
+          payload.accountantDto = {
+            experience: values.experience || "",
+            qualifications: values.qualifications || "",
+          };
+        }
+
+        // Pharmacist (role 9)
+        else if (String(values.role) === "9") {
+          payload.insurerDto = {
+            experience: values.experience || "",
+            qualifications: values.qualifications || "",
+          };
+        }
+
+        // Insurer (role 8)
+        else if (String(values.role) === "8") {
+          payload.laboratoristDto = {
+            experience: values.experience || "",
+            qualifications: values.qualifications || "",
+            laboratoryType: values.category || "",
+          };
+        }
+
+        // Check if files are present
+        const hasFiles =
+          values.profilePic instanceof File || values.idProof instanceof File;
+
+        let requestData;
+        if (hasFiles) {
+          // Build FormData for files + payload JSON
+          const formData = new FormData();
+
+          // Append JSON fields as strings
+          formData.append(
+            "dto",
+            new Blob([JSON.stringify(payload)], { type: "application/json" })
+          );
+
+          // Append file uploads separately
+          if (values.profilePic instanceof File) {
+            formData.append("profilePic", values.profilePic);
           }
-        }
+          if (values.idProof instanceof File) {
+            formData.append("idProofPic", values.idProof);
+          }
 
-        // Build FormData for files + payload JSON
-        const formData = new FormData();
-
-        // Append JSON fields as strings
-        formData.append(
-          "data",
-          new Blob([JSON.stringify(payload)], { type: "application/json" })
-        );
-
-        // Append file uploads separately
-        if (values.profilePic instanceof File) {
-          formData.append("profilePic", values.profilePic);
-        }
-        if (values.idProof instanceof File) {
-          formData.append("idProof", values.idProof);
+          requestData = formData;
+        } else {
+          // Send as JSON
+          requestData = payload;
         }
 
         // Debug
-        for (let [k, v] of formData.entries()) {
-          console.log("📦 FormData entry:", k, v);
-        }
+        console.log("📦 Request Data:", requestData);
 
         // Dispatch Redux thunk
-        await dispatch(registerEmployee(formData));
+        await dispatch(registerEmployee(requestData));
 
+        // Reset form after successful registration
         resetForm();
       } catch (err) {
         console.error("❌ Submit Error:", err);
@@ -171,6 +237,26 @@ const EmployeeRegistration = () => {
   useEffect(() => {
     if (statesStatus === "idle") dispatch(fetchStates());
   }, [dispatch, statesStatus]);
+
+  // fetch departments
+  useEffect(() => {
+    if (departmentsStatus === "idle") dispatch(fetchDepartments());
+  }, [dispatch, departmentsStatus]);
+
+  // Reset employee state on component mount
+  useEffect(() => {
+    dispatch(resetEmployeeState());
+  }, [dispatch]);
+
+  // Auto-dismiss messages after 5 seconds
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        dispatch(resetEmployeeState());
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, error, dispatch]);
 
   // generic change for non-file inputs (we mostly use formik.handleChange directly)
   const handleFileChange = (e) => {
@@ -264,10 +350,32 @@ const EmployeeRegistration = () => {
                   onChange={formik.handleChange}
                   className="form-select"
                 >
-                  <option value="">Select Department</option>
-                  {departments?.map((dept) => (
-                    <option key={dept.id} value={dept.department_name}>
-                      {dept.department_name}
+                  <option value="">
+                    {departmentsStatus === "loading"
+                      ? "Loading Departments..."
+                      : departmentsStatus === "failed"
+                      ? "Error loading departments"
+                      : "Select Department"}
+                  </option>
+                  {departmentsStatus === "succeeded" &&
+                    departments?.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.departmentName}
+                      </option>
+                    ))}
+                </select>
+              ) : field.type === "select" && field.options ? (
+                // ✅ This is where your Category dropdown works
+                <select
+                  name={field.name}
+                  value={formik.values[field.name]}
+                  onChange={formik.handleChange}
+                  className="form-select"
+                >
+                  <option value="">Select {field.label}</option>
+                  {field.options.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
                     </option>
                   ))}
                 </select>
@@ -295,7 +403,7 @@ const EmployeeRegistration = () => {
               { label: "Experience", name: "experience" },
               { label: "Department", name: "department" },
               { label: "Specialization", name: "specialization" },
-              { label: "Qualification", name: "qualification" },
+              { label: "Qualifications", name: "qualifications" },
               { label: "License Number", name: "licenseNumber" },
             ])}
           </div>
@@ -331,11 +439,11 @@ const EmployeeRegistration = () => {
 
               {/* Qualification Field */}
               <div className="mb-3 col-md-6">
-                <label className="form-label">Qualification</label>
+                <label className="form-label">Qualifications</label>
                 <input
                   type="text"
-                  name="qualification"
-                  value={formik.values.qualification}
+                  name="qualifications"
+                  value={formik.values.qualifications}
                   onChange={formik.handleChange}
                   className="form-control"
                 />
@@ -352,10 +460,10 @@ const EmployeeRegistration = () => {
                 label: "Category",
                 name: "category",
                 type: "select",
-                options: ["Pathlab", "Radiologist"],
+                options: ["RADIOLOGY", "PATHLAB"],
               },
               { label: "Experience", name: "experience" },
-              { label: "Qualification", name: "qualification" },
+              { label: "Qualifications", name: "qualifications" },
             ])}
           </div>
         );
@@ -377,6 +485,36 @@ const EmployeeRegistration = () => {
       </div>
 
       <div className="card-body px-5 py-4">
+        {/* Success/Error Messages */}
+        {success && message && (
+          <div
+            className="alert alert-success alert-dismissible fade show"
+            role="alert"
+          >
+            {message}
+            <button
+              type="button"
+              className="btn-close"
+              data-bs-dismiss="alert"
+              aria-label="Close"
+            ></button>
+          </div>
+        )}
+        {error && (
+          <div
+            className="alert alert-danger alert-dismissible fade show"
+            role="alert"
+          >
+            {error}
+            <button
+              type="button"
+              className="btn-close"
+              data-bs-dismiss="alert"
+              aria-label="Close"
+            ></button>
+          </div>
+        )}
+
         {/* Use formik.handleSubmit on form */}
         <form
           onSubmit={formik.handleSubmit}
