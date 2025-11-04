@@ -94,6 +94,10 @@ const EmployeeRegistration = () => {
         .min(new Date(1900, 0, 1), "Date of Birth cannot be before 1900"),
       role: Yup.string().required("Role is required"),
       qualifications: Yup.string().required("Qualifications is required"),
+      // Address validation - basic requirements
+      addressLine1: Yup.string().required("Address Line 1 is required"),
+      state: Yup.string().required("State is required"),
+      city: Yup.string().required("City is required"),
     }),
     // 2) Use Formik onSubmit to dispatch the thunk; convert role to number
     onSubmit: async (values, { setSubmitting, resetForm, setTouched }) => {
@@ -113,7 +117,7 @@ const EmployeeRegistration = () => {
         }
 
         // ...existing code...
-        // console.log("✅ Raw Formik Values:", values);
+        console.log("✅ Raw Formik Values:", values);
 
         // Build structured payload (matches your working payload)
         const payload = {
@@ -126,21 +130,23 @@ const EmployeeRegistration = () => {
           mobileNumber: values.mobileNumber,
           gender: values.gender,
           dob: values.dob,
-          age: Number(values.age),
-          idProofType: values.idProofType,
-          joiningDate: values.joiningDate,
-          bloodGroup: values.bloodGroup,
+          age: values.age ? Number(values.age) : null,
+          idProofType: values.idProofType || null,
+          joiningDate: values.joiningDate || null,
+          bloodGroup: values.bloodGroup || null,
           roleId: Number(values.role), // role → roleId
           addressDto: {
-            addressLine1: values.addressLine1,
-            addressLine2: values.addressLine2,
-            city: values.city,
-            district: values.district,
-            state: values.state,
-            pincode: values.pincode,
+            addressLine1: values.addressLine1 || "",
+            addressLine2: values.addressLine2 || "",
+            city: values.city || "",
+            district: values.district || "",
+            state: values.state || "",
+            pincode: values.pincode || "",
             country: values.country || "India",
           },
         };
+
+        console.log("✅ Payload before role-specific DTOs:", payload);
 
         // ...existing code...
         if (String(values.role) === "3") {
@@ -208,6 +214,11 @@ const EmployeeRegistration = () => {
           };
         }
 
+        console.log(
+          "✅ Final payload with role-specific DTO:",
+          JSON.stringify(payload, null, 2)
+        );
+
         // ...existing code...
         const hasFiles =
           values.profilePic instanceof File || values.idProof instanceof File;
@@ -232,15 +243,46 @@ const EmployeeRegistration = () => {
           }
 
           requestData = formData;
+          console.log("✅ Sending FormData with files");
         } else {
           // Send as JSON
           requestData = payload;
+          console.log(
+            "✅ Sending JSON payload:",
+            JSON.stringify(payload, null, 2)
+          );
         }
 
         // ...existing code...
+        // const resultAction = await dispatch(registerEmployee(requestData));
+        // // RTK returns the action — check requestStatus or action type
+        // const status = resultAction?.meta?.requestStatus;
+        // if (status === "fulfilled") {
+        //   const serverMessage =
+        //     resultAction.payload?.message || "Registration Successful";
+        //   await Swal.fire({
+        //     title: "Success!",
+        //     text: serverMessage,
+        //     icon: "success",
+        //     confirmButtonText: "OK",
+        //   });
+        // } else {
+        //   // payload contains rejectWithValue message when used; fallback to error.message
+        //   const errMsg =
+        //     resultAction.payload ||
+        //     resultAction.error?.message ||
+        //     "Registration failed";
+        //   await Swal.fire({
+        //     title: "Error",
+        //     text: errMsg,
+        //     icon: "error",
+        //     confirmButtonText: "OK",
+        //   });
+        // }
+
         const resultAction = await dispatch(registerEmployee(requestData));
-        // RTK returns the action — check requestStatus or action type
         const status = resultAction?.meta?.requestStatus;
+
         if (status === "fulfilled") {
           const serverMessage =
             resultAction.payload?.message || "Registration Successful";
@@ -251,11 +293,24 @@ const EmployeeRegistration = () => {
             confirmButtonText: "OK",
           });
         } else {
-          // payload contains rejectWithValue message when used; fallback to error.message
-          const errMsg =
+          // Handle backend array errors or a single message
+          let errMsg =
             resultAction.payload ||
             resultAction.error?.message ||
             "Registration failed";
+
+          // Check if it's an array (like your backend response)
+          if (Array.isArray(errMsg)) {
+            // Extract readable messages
+            const messages = errMsg
+              .map((err) => `• ${err.defaultMessage}`)
+              .join("\n");
+            errMsg = messages;
+          } else if (typeof errMsg === "object" && errMsg.defaultMessage) {
+            // Handle single error object
+            errMsg = errMsg.defaultMessage;
+          }
+
           await Swal.fire({
             title: "Error",
             text: errMsg,
@@ -898,19 +953,25 @@ const EmployeeRegistration = () => {
             <div className="row mb-3">
               <div className="col-md-6">
                 <label htmlFor="addressLine1" className="form-label">
-                  Address Line 1
+                  Address Line 1 <span style={{ color: "red" }}>*</span>
                 </label>
                 <input
                   type="text"
                   id="addressLine1"
                   name="addressLine1"
-                  className="form-control"
+                  className={`form-control ${
+                    formik.touched.addressLine1 && formik.errors.addressLine1
+                      ? "is-invalid"
+                      : ""
+                  }`}
                   placeholder="Enter Address Line 1"
                   value={formik.values.addressLine1}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  required
                 />
+                <div className="invalid-feedback">
+                  {formik.errors.addressLine1}
+                </div>
               </div>
               <div className="col-md-6">
                 <label htmlFor="addressLine2" className="form-label">
@@ -932,12 +993,16 @@ const EmployeeRegistration = () => {
             <div className="row mb-3">
               <div className="col-md-4">
                 <label htmlFor="state" className="form-label">
-                  State
+                  State <span style={{ color: "red" }}>*</span>
                 </label>
                 <select
                   id="state"
                   name="state"
-                  className="form-select"
+                  className={`form-select ${
+                    formik.touched.state && formik.errors.state
+                      ? "is-invalid"
+                      : ""
+                  }`}
                   onChange={handleStateChange}
                   onBlur={formik.handleBlur}
                   value={formik.values.state}
@@ -954,6 +1019,7 @@ const EmployeeRegistration = () => {
                       </option>
                     ))}
                 </select>
+                <div className="invalid-feedback">{formik.errors.state}</div>
               </div>
 
               <div className="col-md-4">
@@ -980,17 +1046,22 @@ const EmployeeRegistration = () => {
 
               <div className="col-md-4">
                 <label htmlFor="city" className="form-label">
-                  City
+                  City <span style={{ color: "red" }}>*</span>
                 </label>
                 <input
                   type="text"
                   id="city"
                   name="city"
-                  className="form-control"
+                  className={`form-control ${
+                    formik.touched.city && formik.errors.city
+                      ? "is-invalid"
+                      : ""
+                  }`}
                   value={formik.values.city}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                 />
+                <div className="invalid-feedback">{formik.errors.city}</div>
               </div>
             </div>
 

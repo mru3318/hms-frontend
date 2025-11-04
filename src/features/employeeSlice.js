@@ -7,21 +7,38 @@ export const registerEmployee = createAsyncThunk(
   "employee/registerEmployee",
   async (employeeData, { rejectWithValue }) => {
     try {
-      // If caller already passed a FormData instance, send it directly.
-      // Avoid manually setting Content-Type so the browser/axios includes the correct boundary.
-      let body = employeeData;
-      // console.log("Employee Data to be sent:", employeeData);
-      if (!(employeeData instanceof FormData)) {
-        body = new FormData();
-        for (let key in employeeData) {
-          body.append(key, employeeData[key]);
-        }
+      console.log("Employee Data to be sent:", employeeData);
+
+      let config = {};
+
+      if (employeeData instanceof FormData) {
+        // If it's FormData (with files), send as multipart/form-data
+        // Don't set Content-Type manually, let browser set it with boundary
+        config = {
+          headers: {
+            // Let browser set Content-Type with boundary for FormData
+            "Content-Type": "multipart/form-data",
+          },
+        };
+      } else {
+        // If it's a regular object (no files), send as JSON
+        config = {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        };
       }
 
-      const response = await axios.post(`${API_BASE_URL}/register/add`, body);
-      // console.log("API Response:", response.data);
+      const response = await axios.post(
+        `${API_BASE_URL}/register/add`,
+        employeeData,
+        config
+      );
+      console.log("API Response:", response.data);
       return response.data;
     } catch (error) {
+      console.error("Registration Error:", error);
+      console.error("Error Response:", error.response?.data);
       return rejectWithValue(
         error.response?.data?.message || "Something went wrong"
       );
