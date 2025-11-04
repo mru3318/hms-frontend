@@ -10,7 +10,7 @@ export const registerEmployee = createAsyncThunk(
       // If caller already passed a FormData instance, send it directly.
       // Avoid manually setting Content-Type so the browser/axios includes the correct boundary.
       let body = employeeData;
-      console.log("Employee Data to be sent:", employeeData);
+      // console.log("Employee Data to be sent:", employeeData);
       if (!(employeeData instanceof FormData)) {
         body = new FormData();
         for (let key in employeeData) {
@@ -19,7 +19,7 @@ export const registerEmployee = createAsyncThunk(
       }
 
       const response = await axios.post(`${API_BASE_URL}/register/add`, body);
-      console.log("API Response:", response.data);
+      // console.log("API Response:", response.data);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -36,12 +36,14 @@ const employeeSlice = createSlice({
     loading: false,
     success: false,
     error: null,
+    message: null,
   },
   reducers: {
     resetEmployeeState: (state) => {
       state.loading = false;
       state.success = false;
       state.error = null;
+      state.message = null;
     },
   },
   extraReducers: (builder) => {
@@ -50,15 +52,19 @@ const employeeSlice = createSlice({
         state.loading = true;
         state.success = false;
         state.error = null;
+        state.message = null;
       })
-      .addCase(registerEmployee.fulfilled, (state) => {
+      .addCase(registerEmployee.fulfilled, (state, action) => {
         state.loading = false;
         state.success = true;
+        // prefer a 'message' property from the API payload when available
+        state.message = action.payload?.message ?? null;
       })
       .addCase(registerEmployee.rejected, (state, action) => {
         state.loading = false;
         state.success = false;
         state.error = action.payload;
+        state.message = null;
       });
   },
 });

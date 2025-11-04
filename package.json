@@ -12,11 +12,12 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.9.2",
     "axios": "^1.4.0",
+    "formik": "^2.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.9.4",
     "react-redux": "^8.1.1",
-    "formik": "^2.4.0",
+    "react-router-dom": "^7.9.4",
+    "sweetalert2": "^11.26.3",
     "yup": "^1.2.0"
   },
   "devDependencies": {

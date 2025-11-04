@@ -15,7 +15,8 @@ import {
   registerEmployee,
   resetEmployeeState,
 } from "../../../features/employeeSlice";
-import { use } from "react";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 const EmployeeRegistration = () => {
   const dispatch = useDispatch();
@@ -25,10 +26,7 @@ const EmployeeRegistration = () => {
   const { list: departments, status: departmentsStatus } = useSelector(
     (state) => state.departments
   );
-
-  const { success, error, message, loading } = useSelector(
-    (state) => state.employee
-  );
+  const { success, error, message } = useSelector((state) => state.employee);
 
   const [districts, setDistricts] = useState([]);
   const [passwordRules, setPasswordRules] = useState({
@@ -88,12 +86,34 @@ const EmployeeRegistration = () => {
       confirmPassword: Yup.string()
         .oneOf([Yup.ref("password")], "Passwords must match")
         .required("Please confirm your password"),
+      gender: Yup.string().required("Gender is required"),
+      dob: Yup.date()
+        .required("Date of Birth is required")
+        .typeError("Date of Birth must be a valid date")
+        .max(new Date(), "Date of Birth cannot be in the future")
+        .min(new Date(1900, 0, 1), "Date of Birth cannot be before 1900"),
+      role: Yup.string().required("Role is required"),
+      qualifications: Yup.string().required("Qualifications is required"),
     }),
     // 2) Use Formik onSubmit to dispatch the thunk; convert role to number
-    onSubmit: async (values, { setSubmitting, resetForm }) => {
+    onSubmit: async (values, { setSubmitting, resetForm, setTouched }) => {
       setSubmitting(true);
       try {
-        console.log("✅ Raw Formik Values:", values);
+        // If there are errors, mark all fields as touched to show validation
+        const errors = await formik.validateForm();
+        if (Object.keys(errors).length > 0) {
+          setTouched(
+            Object.keys(formik.initialValues).reduce((acc, key) => {
+              acc[key] = true;
+              return acc;
+            }, {})
+          );
+          setSubmitting(false);
+          return;
+        }
+
+        // ...existing code...
+        // console.log("✅ Raw Formik Values:", values);
 
         // Build structured payload (matches your working payload)
         const payload = {
@@ -122,7 +142,7 @@ const EmployeeRegistration = () => {
           },
         };
 
-        // Add role-based nested DTO (example for Doctor)
+        // ...existing code...
         if (String(values.role) === "3") {
           payload.doctorDto = {
             specialization: values.specialization || "",
@@ -139,7 +159,7 @@ const EmployeeRegistration = () => {
           };
         }
 
-        // Accountant (role 10)
+        // ...existing code...
         else if (String(values.role) === "10") {
           payload.receptionistDto = {
             experience: values.experience || "",
@@ -147,7 +167,7 @@ const EmployeeRegistration = () => {
           };
         }
 
-        // Lab (role 5)
+        // ...existing code...
         else if (String(values.role) === "5") {
           payload.pharmacistDto = {
             experience: values.experience || "",
@@ -155,7 +175,7 @@ const EmployeeRegistration = () => {
           };
         }
 
-        // Head Nurse (role 4)
+        // ...existing code...
         else if (String(values.role) === "4") {
           payload.headNurseDto = {
             experience: values.experience || "",
@@ -163,7 +183,7 @@ const EmployeeRegistration = () => {
           };
         }
 
-        // Receptionist (role 6)
+        // ...existing code...
         else if (String(values.role) === "6") {
           payload.accountantDto = {
             experience: values.experience || "",
@@ -171,7 +191,7 @@ const EmployeeRegistration = () => {
           };
         }
 
-        // Pharmacist (role 9)
+        // ...existing code...
         else if (String(values.role) === "9") {
           payload.insurerDto = {
             experience: values.experience || "",
@@ -179,7 +199,7 @@ const EmployeeRegistration = () => {
           };
         }
 
-        // Insurer (role 8)
+        // ...existing code...
         else if (String(values.role) === "8") {
           payload.laboratoristDto = {
             experience: values.experience || "",
@@ -188,7 +208,7 @@ const EmployeeRegistration = () => {
           };
         }
 
-        // Check if files are present
+        // ...existing code...
         const hasFiles =
           values.profilePic instanceof File || values.idProof instanceof File;
 
@@ -217,11 +237,32 @@ const EmployeeRegistration = () => {
           requestData = payload;
         }
 
-        // Debug
-        console.log("📦 Request Data:", requestData);
-
-        // Dispatch Redux thunk
-        await dispatch(registerEmployee(requestData));
+        // ...existing code...
+        const resultAction = await dispatch(registerEmployee(requestData));
+        // RTK returns the action — check requestStatus or action type
+        const status = resultAction?.meta?.requestStatus;
+        if (status === "fulfilled") {
+          const serverMessage =
+            resultAction.payload?.message || "Registration Successful";
+          await Swal.fire({
+            title: "Success!",
+            text: serverMessage,
+            icon: "success",
+            confirmButtonText: "OK",
+          });
+        } else {
+          // payload contains rejectWithValue message when used; fallback to error.message
+          const errMsg =
+            resultAction.payload ||
+            resultAction.error?.message ||
+            "Registration failed";
+          await Swal.fire({
+            title: "Error",
+            text: errMsg,
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        }
 
         // Reset form after successful registration
         resetForm();
@@ -301,7 +342,7 @@ const EmployeeRegistration = () => {
           ? "✅ Passwords match"
           : "❌ Passwords do not match"
       );
-  }, [formik.values.password, formik.values.confirmPassword]);
+  }, [formik.values]);
 
   // State -> district
   const handleStateChange = (e) => {
@@ -334,6 +375,7 @@ const EmployeeRegistration = () => {
                   name={field.name}
                   value={formik.values[field.name]}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   className="form-select"
                 >
                   <option value="">Select Experience</option>
@@ -348,6 +390,7 @@ const EmployeeRegistration = () => {
                   name={field.name}
                   value={formik.values[field.name]}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   className="form-select"
                 >
                   <option value="">
@@ -370,6 +413,7 @@ const EmployeeRegistration = () => {
                   name={field.name}
                   value={formik.values[field.name]}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   className="form-select"
                 >
                   <option value="">Select {field.label}</option>
@@ -385,6 +429,7 @@ const EmployeeRegistration = () => {
                   name={field.name}
                   value={formik.values[field.name]}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   className="form-control"
                 />
               )}
@@ -399,13 +444,95 @@ const EmployeeRegistration = () => {
         return (
           <div id="doctorFields" className="mt-3">
             <h5>{roleLabel} Specific Fields</h5>
-            {commonFields([
-              { label: "Experience", name: "experience" },
-              { label: "Department", name: "department" },
-              { label: "Specialization", name: "specialization" },
-              { label: "Qualifications", name: "qualifications" },
-              { label: "License Number", name: "licenseNumber" },
-            ])}
+            <div className="row">
+              {/* Experience */}
+              <div className="col-12 col-md-6 mb-3">
+                <label className="form-label">Experience</label>
+                <select
+                  name="experience"
+                  value={formik.values.experience}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="form-select"
+                >
+                  <option value="">Select Experience</option>
+                  {ExperienceLevel.map((exp) => (
+                    <option key={exp.value} value={exp.value}>
+                      {exp.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Department */}
+              <div className="col-12 col-md-6 mb-3">
+                <label className="form-label">Department</label>
+                <select
+                  name="department"
+                  value={formik.values.department}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="form-select"
+                >
+                  <option value="">
+                    {departmentsStatus === "loading"
+                      ? "Loading Departments..."
+                      : departmentsStatus === "failed"
+                      ? "Error loading departments"
+                      : "Select Department"}
+                  </option>
+                  {departmentsStatus === "succeeded" &&
+                    departments?.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.departmentName}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              {/* Specialization */}
+              <div className="col-12 col-md-6 mb-3">
+                <label className="form-label">Specialization</label>
+                <input
+                  type="text"
+                  name="specialization"
+                  value={formik.values.specialization}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="form-control"
+                />
+              </div>
+              {/* Qualifications (Formik) */}
+              <div className="col-12 col-md-6 mb-3">
+                <label className="form-label">Qualifications</label>
+                <input
+                  type="text"
+                  name="qualifications"
+                  value={formik.values.qualifications}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className={`form-control ${
+                    formik.touched.qualifications &&
+                    formik.errors.qualifications
+                      ? "is-invalid"
+                      : ""
+                  }`}
+                />
+                <div className="invalid-feedback">
+                  {formik.errors.qualifications}
+                </div>
+              </div>
+              {/* License Number */}
+              <div className="col-12 col-md-6 mb-3">
+                <label className="form-label">License Number</label>
+                <input
+                  type="text"
+                  name="licenseNumber"
+                  value={formik.values.licenseNumber}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="form-control"
+                />
+              </div>
+            </div>
           </div>
         );
       case "7":
@@ -425,7 +552,10 @@ const EmployeeRegistration = () => {
                 <select
                   name="experience"
                   value={formik.values.experience}
-                  onChange={formik.handleChange}
+                  onChange={(e) =>
+                    formik.setFieldValue("experience", e.target.value)
+                  }
+                  onBlur={formik.handleBlur}
                   className="form-select"
                 >
                   <option value="">Select Experience</option>
@@ -445,8 +575,17 @@ const EmployeeRegistration = () => {
                   name="qualifications"
                   value={formik.values.qualifications}
                   onChange={formik.handleChange}
-                  className="form-control"
+                  onBlur={formik.handleBlur}
+                  className={`form-control ${
+                    formik.touched.qualifications &&
+                    formik.errors.qualifications
+                      ? "is-invalid"
+                      : ""
+                  }`}
                 />
+                <div className="invalid-feedback">
+                  {formik.errors.qualifications}
+                </div>
               </div>
             </div>
           </div>
@@ -455,16 +594,61 @@ const EmployeeRegistration = () => {
         return (
           <div id="labTechFields" className="mt-3">
             <h5>{roleLabel} Specific Fields</h5>
-            {commonFields([
-              {
-                label: "Category",
-                name: "category",
-                type: "select",
-                options: ["RADIOLOGY", "PATHLAB"],
-              },
-              { label: "Experience", name: "experience" },
-              { label: "Qualifications", name: "qualifications" },
-            ])}
+            <div className="row">
+              {/* Category */}
+              <div className="col-12 col-md-6 mb-3">
+                <label className="form-label">Category</label>
+                <select
+                  name="category"
+                  value={formik.values.category}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="form-select"
+                >
+                  <option value="">Select Category</option>
+                  <option value="RADIOLOGY">RADIOLOGY</option>
+                  <option value="PATHLAB">PATHLAB</option>
+                </select>
+              </div>
+              {/* Experience */}
+              <div className="col-12 col-md-6 mb-3">
+                <label className="form-label">Experience</label>
+                <select
+                  name="experience"
+                  value={formik.values.experience}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="form-select"
+                >
+                  <option value="">Select Experience</option>
+                  {ExperienceLevel.map((exp) => (
+                    <option key={exp.value} value={exp.value}>
+                      {exp.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Qualifications (Formik) */}
+              <div className="col-12 col-md-6 mb-3">
+                <label className="form-label">Qualifications</label>
+                <input
+                  type="text"
+                  name="qualifications"
+                  value={formik.values.qualifications}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className={`form-control ${
+                    formik.touched.qualifications &&
+                    formik.errors.qualifications
+                      ? "is-invalid"
+                      : ""
+                  }`}
+                />
+                <div className="invalid-feedback">
+                  {formik.errors.qualifications}
+                </div>
+              </div>
+            </div>
           </div>
         );
       default:
@@ -699,12 +883,19 @@ const EmployeeRegistration = () => {
           {/* Gender / DOB / Age */}
           <div className="row mb-3">
             <div className="col-md-4">
-              <label className="form-label fw-semibold">Gender</label>
+              <label className="form-label fw-semibold">
+                Gender <span style={{ color: "red" }}>*</span>
+              </label>
               <select
                 name="gender"
-                className="form-select"
+                className={`form-select ${
+                  formik.touched.gender && formik.errors.gender
+                    ? "is-invalid"
+                    : ""
+                }`}
                 value={formik.values.gender}
                 onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
               >
                 <option value="">Select Gender</option>
                 {GenderOptions?.map((g, idx) => (
@@ -713,6 +904,7 @@ const EmployeeRegistration = () => {
                   </option>
                 ))}
               </select>
+              <div className="invalid-feedback">{formik.errors.gender}</div>
             </div>
 
             <div className="col-md-4">
@@ -722,8 +914,12 @@ const EmployeeRegistration = () => {
                 name="dob"
                 value={formik.values.dob}
                 onChange={formik.handleChange}
-                className="form-control"
+                onBlur={formik.handleBlur}
+                className={`form-control ${
+                  formik.touched.dob && formik.errors.dob ? "is-invalid" : ""
+                }`}
               />
+              <div className="invalid-feedback">{formik.errors.dob}</div>
             </div>
 
             <div className="col-md-4">
@@ -747,6 +943,7 @@ const EmployeeRegistration = () => {
                 name="joiningDate"
                 value={formik.values.joiningDate}
                 onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 className="form-control"
               />
             </div>
@@ -757,6 +954,7 @@ const EmployeeRegistration = () => {
                 className="form-select"
                 value={formik.values.bloodGroup}
                 onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
               >
                 <option value="">Select Blood Group</option>
                 {BloodGroupOptions?.map((group, idx) => (
@@ -784,6 +982,8 @@ const EmployeeRegistration = () => {
                   placeholder="Enter Address Line 1"
                   value={formik.values.addressLine1}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  required
                 />
               </div>
               <div className="col-md-6">
@@ -798,6 +998,7 @@ const EmployeeRegistration = () => {
                   placeholder="Enter Address Line 2"
                   value={formik.values.addressLine2}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 />
               </div>
             </div>
@@ -812,6 +1013,7 @@ const EmployeeRegistration = () => {
                   name="state"
                   className="form-select"
                   onChange={handleStateChange}
+                  onBlur={formik.handleBlur}
                   value={formik.values.state}
                 >
                   <option value="">Select State</option>
@@ -837,6 +1039,7 @@ const EmployeeRegistration = () => {
                   name="district"
                   className="form-select"
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   value={formik.values.district}
                   disabled={!formik.values.state}
                 >
@@ -860,6 +1063,7 @@ const EmployeeRegistration = () => {
                   className="form-control"
                   value={formik.values.city}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 />
               </div>
             </div>
@@ -891,6 +1095,7 @@ const EmployeeRegistration = () => {
                   className="form-control"
                   value={formik.values.pincode}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 />
               </div>
             </div>
@@ -905,6 +1110,7 @@ const EmployeeRegistration = () => {
                 className="form-select"
                 value={formik.values.idProofType}
                 onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
               >
                 <option value="">Select Id Proof</option>
                 {IdProofTypeOptions?.map((idProof, idx) => (
@@ -942,9 +1148,10 @@ const EmployeeRegistration = () => {
               <label className="form-label fw-semibold">Role</label>
               <select
                 name="role"
-                className="form-select"
-                value={formik.values.role}
-                onChange={formik.handleChange}
+                className={`form-select ${
+                  formik.touched.role && formik.errors.role ? "is-invalid" : ""
+                }`}
+                {...formik.getFieldProps("role")}
               >
                 <option value="">Select Role</option>
                 {RoleNameOptions?.map((role, idx) => (
@@ -953,6 +1160,7 @@ const EmployeeRegistration = () => {
                   </option>
                 ))}
               </select>
+              <div className="invalid-feedback">{formik.errors.role}</div>
             </div>
           </div>
 

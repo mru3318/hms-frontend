@@ -17,6 +17,7 @@ export const fetchDepartments = createAsyncThunk(
           },
         }
       );
+      // console.log("fetchDepartments API response:", response.data);
       // helpful debug log when running locally
       // console.debug("fetchDepartments response:", response.data);
       return response.data.departments; // extract departments from the response
