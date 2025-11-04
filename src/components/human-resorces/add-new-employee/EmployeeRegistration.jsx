@@ -146,7 +146,7 @@ const EmployeeRegistration = () => {
         if (String(values.role) === "3") {
           payload.doctorDto = {
             specialization: values.specialization || "",
-            experience: values.experience || "",
+            experience: values.experience || null,
             qualifications: values.qualifications || "", // note: server expects 'qualifications' (plural)
             licenseNumber: values.licenseNumber || "",
             departmentId: values.department ? Number(values.department) : 3, // default departmentId
@@ -154,7 +154,7 @@ const EmployeeRegistration = () => {
         } // HR (role 7)
         else if (String(values.role) === "7") {
           payload.humanResourceDto = {
-            experience: values.experience || "",
+            experience: values.experience || null,
             qualifications: values.qualifications || "",
           };
         }
@@ -162,7 +162,7 @@ const EmployeeRegistration = () => {
         // ...existing code...
         else if (String(values.role) === "10") {
           payload.receptionistDto = {
-            experience: values.experience || "",
+            experience: values.experience || null,
             qualifications: values.qualifications || "",
           };
         }
@@ -170,7 +170,7 @@ const EmployeeRegistration = () => {
         // ...existing code...
         else if (String(values.role) === "5") {
           payload.pharmacistDto = {
-            experience: values.experience || "",
+            experience: values.experience || null,
             qualifications: values.qualifications || "",
           };
         }
@@ -178,7 +178,7 @@ const EmployeeRegistration = () => {
         // ...existing code...
         else if (String(values.role) === "4") {
           payload.headNurseDto = {
-            experience: values.experience || "",
+            experience: values.experience || null,
             qualifications: values.qualifications || "",
           };
         }
@@ -186,7 +186,7 @@ const EmployeeRegistration = () => {
         // ...existing code...
         else if (String(values.role) === "6") {
           payload.accountantDto = {
-            experience: values.experience || "",
+            experience: values.experience || null,
             qualifications: values.qualifications || "",
           };
         }
@@ -194,7 +194,7 @@ const EmployeeRegistration = () => {
         // ...existing code...
         else if (String(values.role) === "9") {
           payload.insurerDto = {
-            experience: values.experience || "",
+            experience: values.experience || null,
             qualifications: values.qualifications || "",
           };
         }
@@ -202,9 +202,9 @@ const EmployeeRegistration = () => {
         // ...existing code...
         else if (String(values.role) === "8") {
           payload.laboratoristDto = {
-            experience: values.experience || "",
+            experience: values.experience || null,
             qualifications: values.qualifications || "",
-            laboratoryType: values.category || "",
+            laboratoryType: values.category || null,
           };
         }
 
@@ -364,80 +364,6 @@ const EmployeeRegistration = () => {
       (r) => String(r.value) === String(role)
     );
     const roleLabel = roleLabelObj ? roleLabelObj.label : role;
-    const commonFields = (fields) => {
-      return (
-        <div className="row">
-          {fields.map((field) => (
-            <div className="col-12 col-md-6 mb-3" key={field.name}>
-              <label className="form-label">{field.label}</label>
-              {field.name === "experience" ? (
-                <select
-                  name={field.name}
-                  value={formik.values[field.name]}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  className="form-select"
-                >
-                  <option value="">Select Experience</option>
-                  {ExperienceLevel.map((exp) => (
-                    <option key={exp.value} value={exp.value}>
-                      {exp.label}
-                    </option>
-                  ))}
-                </select>
-              ) : field.name === "department" ? (
-                <select
-                  name={field.name}
-                  value={formik.values[field.name]}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  className="form-select"
-                >
-                  <option value="">
-                    {departmentsStatus === "loading"
-                      ? "Loading Departments..."
-                      : departmentsStatus === "failed"
-                      ? "Error loading departments"
-                      : "Select Department"}
-                  </option>
-                  {departmentsStatus === "succeeded" &&
-                    departments?.map((dept) => (
-                      <option key={dept.id} value={dept.id}>
-                        {dept.departmentName}
-                      </option>
-                    ))}
-                </select>
-              ) : field.type === "select" && field.options ? (
-                // ✅ This is where your Category dropdown works
-                <select
-                  name={field.name}
-                  value={formik.values[field.name]}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  className="form-select"
-                >
-                  <option value="">Select {field.label}</option>
-                  {field.options.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  name={field.name}
-                  value={formik.values[field.name]}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  className="form-control"
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      );
-    };
 
     switch (String(role)) {
       case "3":
