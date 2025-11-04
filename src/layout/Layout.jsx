@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
+import "./Layout.css";
 
 const Layout = () => {
   const [openMenu, setOpenMenu] = useState(null);
@@ -67,9 +68,10 @@ const Layout = () => {
         <div className="text-center navbar-brand-wrapper d-flex align-items-center justify-content-center">
           <a className="navbar-brand brand-logo" href="index.html">
             <img
-              src="/assets/images/logo-main.png"
+              src="/assets/images/harishchandra-logo1.png"
               alt="logo"
               className="logo-dark"
+              style={{ width: "60px", height: "60px", marginLeft: "20px" }}
             />
             <img
               src="/assets/images/logo-light.svg"
@@ -78,7 +80,7 @@ const Layout = () => {
             />
           </a>
           <a className="navbar-brand brand-logo-mini" href="index.html">
-            <img src="/assets/images/logo-mini.png" alt="logo" />
+            <img src="/assets/images/harishchandra-logo1.png" alt="logo" />
           </a>
           <button
             className="navbar-toggler navbar-toggler align-self-center"
@@ -92,8 +94,11 @@ const Layout = () => {
           className="navbar-menu-wrapper d-flex align-items-center"
           style={{ backgroundColor: "#01c0c8" }}
         >
-          <h5 className="mb-0 font-weight-medium d-none d-lg-flex">
-            Welcome Admin
+          <h5
+            className="mb-0 font-weight-bold d-none d-lg-flex"
+            style={{ fontSize: "20px" }}
+          >
+            Harishchandra Multispeciality
           </h5>
           <ul className="navbar-nav navbar-nav-right">
             <li className="nav-item dropdown user-dropdown me-2">
@@ -157,7 +162,13 @@ const Layout = () => {
                 className="nav-link navbar-brand brand-logo-mini"
                 href="index.html"
               >
-                <img src="/assets/images/logo-mini.png" alt="logo" />
+                <img
+                  className="mt-2"
+                  src="/assets/images/harishchandra-logo1.png"
+                  alt="logo"
+                  width={"50px"}
+                  height={"50px"}
+                />
               </a>
             </li>
             {/* ################## */}
@@ -433,10 +444,10 @@ const Layout = () => {
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="#">
                       {" "}
                       Add Appointments{" "}
-                    </a>
+                    </NavLink>
                   </li>
                   <li className="nav-item">
                     <a className="nav-link" href="#">
