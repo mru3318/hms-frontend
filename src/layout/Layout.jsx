@@ -177,7 +177,7 @@ const Layout = () => {
             </li>
             {/* ################## */}
             <li className="nav-item">
-              <NavLink to="/" end className="nav-link">
+              <NavLink to="/dashboard" end className="nav-link">
                 <span className="menu-title">Dashboard</span>
                 <i className="fa fa-tachometer-alt menu-icon" />
               </NavLink>
@@ -230,17 +230,18 @@ const Layout = () => {
                 className={`collapse ${
                   openMenu === "departments" ? "show" : ""
                 }`}
+                data-menu-key="departments"
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="add-department">
                       Add Department
-                    </a>
+                    </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="manage-department">
                       Manage Departments{" "}
-                    </a>
+                    </NavLink>
                   </li>
                 </ul>
               </div>

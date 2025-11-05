@@ -17,6 +17,9 @@ import ForgotPassword from "./components/auth/forgot-password/ForgotPassword";
 import ViewNotices from "./components/notice/manage-notice/view-notice/ViewNotices";
 import CreateNotice from "./components/notice/manage-notice/add-new-notice/CreateNotice";
 import EmployeeRegistration from "./components/human-resorces/add-new-employee/EmployeeRegistration";
+import ManageDepartment from "./components/department/ManageDepartment";
+import UpdateDepartment from "./components/department/UpdateDepartment";
+import AddDepartment from "./components/department/AddDepartment";
 
 function App() {
   const router = createBrowserRouter([
@@ -102,6 +105,20 @@ function App() {
         {
           path: "add-new-notice",
           element: <CreateNotice />,
+        },
+
+        //Department Routes
+        {
+          path: "manage-department",
+          element: <ManageDepartment />,
+        },
+        {
+          path: "update-department/:id",
+          element: <UpdateDepartment />,
+        },
+        {
+          path: "add-department",
+          element: <AddDepartment />,
         },
       ],
     },
