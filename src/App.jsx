@@ -24,6 +24,8 @@ import AddAsset from "./components/asset-management/add-asset/AddAsset";
 import AssetList from "./components/asset-management/asset-list/AssetList";
 import AddHealthPackage from "./components/helth-package/add-helth-package/AddHealthPackage";
 import HealthPackages from "./components/helth-package/manage-helth-package/HealthPackages";
+import UpdateHelthPackage from "./components/helth-package/update-package/UpdateHelthPackage";
+import UpdateAsset from "./components/asset-management/update-asset/UpdateAsset";
 
 function App() {
   const router = createBrowserRouter([
@@ -134,6 +136,10 @@ function App() {
           path: "asset-list",
           element: <AssetList />,
         },
+        {
+          path: "update-asset/:id",
+          element: <UpdateAsset />,
+        },
 
         //Helth Package Routes
         {
@@ -143,6 +149,10 @@ function App() {
         {
           path: "manage-health-packages",
           element: <HealthPackages />,
+        },
+        {
+          path: "update-health-package/:id",
+          element: <UpdateHelthPackage />,
         },
       ],
     },

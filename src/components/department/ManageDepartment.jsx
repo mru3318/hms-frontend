@@ -145,13 +145,13 @@ const ManageDepartment = () => {
                         className="btn btn-sm text-white"
                         style={{ backgroundColor: "#01C0C8" }}
                       >
-                        <i className="fas fa-pen-to-square me-1"></i> Update
+                        <i className="fas fa-pen-to-square me-1"></i>
                       </NavLink>
                       <NavLink
                         onClick={() => handleDelete(dept.id)}
                         className="btn btn-sm btn-danger ms-2"
                       >
-                        <i className="fas fa-trash me-1"></i> Delete
+                        <i className="fas fa-trash me-1"></i>
                       </NavLink>
                     </td>
                   </tr>

@@ -1,17 +1,29 @@
 import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { addAsset, resetAddAsset } from "../../../features/assetsSlice";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
+import {
+  fetchAssetById,
+  updateAsset,
+  resetUpdateAsset,
+  resetCurrentAsset,
+} from "../../../features/assetsSlice";
 
-const AddAsset = () => {
-  const dispatch = useDispatch();
+const UpdateAsset = () => {
+  const { id } = useParams(); // Get asset ID from URL
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const { addAssetStatus, addAssetError } = useSelector(
-    (state) => state.assets
-  );
+  // Redux state
+  const {
+    currentAsset,
+    currentAssetStatus,
+    currentAssetError,
+    updateAssetStatus,
+    updateAssetError,
+  } = useSelector((state) => state.assets);
 
+  // Local state for form
   const [formData, setFormData] = useState({
     assetId: "",
     serialNumber: "",
@@ -25,52 +37,76 @@ const AddAsset = () => {
     status: "",
   });
 
-  // Handle form input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    console.log(`Field changed: ${name} = ${value}`); // Debug log
-    setFormData({ ...formData, [name]: value });
-  };
-
-  // Handle success
+  // Fetch asset data on component mount
   useEffect(() => {
-    if (addAssetStatus === "succeeded") {
+    if (id) {
+      dispatch(fetchAssetById(id));
+    }
+
+    // Cleanup on unmount
+    return () => {
+      dispatch(resetCurrentAsset());
+      dispatch(resetUpdateAsset());
+    };
+  }, [id, dispatch]);
+
+  // Populate form when asset data is fetched
+  useEffect(() => {
+    console.log("=== UPDATE ASSET: currentAsset changed ===");
+    console.log("currentAsset:", currentAsset);
+    console.log("currentAssetStatus:", currentAssetStatus);
+
+    if (currentAsset) {
+      console.log("Populating form with asset data:", currentAsset);
+      setFormData({
+        assetId: currentAsset.assetId || "",
+        serialNumber: currentAsset.serialNumber || "",
+        model: currentAsset.model || "",
+        vendor: currentAsset.vendor || "",
+        purchaseDate: currentAsset.purchaseDate || "",
+        warrantyDate: currentAsset.warrantyDate || "",
+        departmentBranch: currentAsset.departmentBranch || "",
+        amcCmcDetails: currentAsset.amcCmcDetails || "",
+        remarksNotes: currentAsset.remarksNotes || "",
+        status: currentAsset.status || "",
+      });
+      console.log("Form data set successfully");
+    }
+  }, [currentAsset, currentAssetStatus]);
+
+  // Handle update success
+  useEffect(() => {
+    if (updateAssetStatus === "succeeded") {
       Swal.fire({
         icon: "success",
         title: "Success!",
-        text: "Asset added successfully!",
+        text: "Asset updated successfully!",
         confirmButtonColor: "#01C0C8",
       }).then(() => {
-        dispatch(resetAddAsset());
-        // Reset form
-        setFormData({
-          assetId: "",
-          serialNumber: "",
-          model: "",
-          vendor: "",
-          purchaseDate: "",
-          warrantyDate: "",
-          departmentBranch: "",
-          amcCmcDetails: "",
-          remarksNotes: "",
-          status: "",
-        });
+        dispatch(resetUpdateAsset());
+        navigate("/dashboard/asset-list"); // Navigate back to list
       });
     }
-  }, [addAssetStatus, dispatch]);
+  }, [updateAssetStatus, dispatch, navigate]);
 
-  // Handle error
+  // Handle update error
   useEffect(() => {
-    if (addAssetStatus === "failed" && addAssetError) {
+    if (updateAssetStatus === "failed" && updateAssetError) {
       Swal.fire({
         icon: "error",
         title: "Error!",
-        text: addAssetError,
+        text: updateAssetError,
         confirmButtonColor: "#d33",
       });
-      dispatch(resetAddAsset());
+      dispatch(resetUpdateAsset());
     }
-  }, [addAssetStatus, addAssetError, dispatch]);
+  }, [updateAssetStatus, updateAssetError, dispatch]);
+
+  // Handle form changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
 
   // Handle form submission
   const handleSubmit = (e) => {
@@ -95,7 +131,7 @@ const AddAsset = () => {
       return;
     }
 
-    // Prepare data
+    // Prepare data for update
     const assetData = {
       assetId: formData.assetId.trim(),
       serialNumber: formData.serialNumber.trim(),
@@ -109,11 +145,32 @@ const AddAsset = () => {
       status: formData.status,
     };
 
-    console.log("FormData status:", formData.status);
-    console.log("AssetData status:", assetData.status);
-    console.log("Full payload being sent:", assetData);
-    dispatch(addAsset(assetData));
+    console.log("Updating asset with ID:", id, "Data:", assetData);
+    dispatch(updateAsset({ id, assetData }));
   };
+
+  // Show loading state while fetching asset data
+  if (currentAssetStatus === "loading") {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border text-info" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3">Loading asset data...</p>
+      </div>
+    );
+  }
+
+  // Show error if failed to fetch asset
+  if (currentAssetStatus === "failed" && currentAssetError) {
+    return (
+      <div className="alert alert-danger mx-auto" role="alert">
+        <i className="fas fa-exclamation-triangle me-2"></i>
+        {currentAssetError}
+      </div>
+    );
+  }
+
   return (
     <div className="container my-4 p-0 m-0">
       {/* Header */}
@@ -125,7 +182,7 @@ const AddAsset = () => {
               style={{ color: "#ffffff" }}
             ></i>
             <span className="text" style={{ color: "#ffffff" }}>
-              Add New Asset
+              Update Asset
             </span>
           </div>
         </div>
@@ -134,7 +191,7 @@ const AddAsset = () => {
       <div className="container">
         {/* Form Section */}
         <div className="card shadow-sm p-4 mt-3">
-          <h4 className="mb-3">Add Asset Details</h4>
+          <h4 className="mb-3">Update Asset Details</h4>
 
           <form id="assetForm" onSubmit={handleSubmit}>
             <div className="row">
@@ -303,20 +360,20 @@ const AddAsset = () => {
                 type="submit"
                 className="btn btn-success"
                 style={{ backgroundColor: "#01C0C8", border: "none" }}
-                disabled={addAssetStatus === "loading"}
+                disabled={updateAssetStatus === "loading"}
               >
-                {addAssetStatus === "loading" ? (
+                {updateAssetStatus === "loading" ? (
                   <>
                     <span
                       className="spinner-border spinner-border-sm me-2"
                       role="status"
                       aria-hidden="true"
                     ></span>
-                    Adding...
+                    Updating...
                   </>
                 ) : (
                   <>
-                    <i className="fa-solid fa-plus me-1"></i> Add Asset
+                    <i className="fa-solid fa-save me-1"></i> Update Asset
                   </>
                 )}
               </button>
@@ -324,9 +381,9 @@ const AddAsset = () => {
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => navigate("/dashboard/asset-list")}
-                disabled={addAssetStatus === "loading"}
+                disabled={updateAssetStatus === "loading"}
               >
-                <i className="fa-solid fa-eye me-1"></i> View All Assets
+                <i className="fa-solid fa-arrow-left me-1"></i> Cancel
               </button>
             </div>
           </form>
@@ -336,4 +393,4 @@ const AddAsset = () => {
   );
 };
 
-export default AddAsset;
+export default UpdateAsset;
