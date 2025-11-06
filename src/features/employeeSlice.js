@@ -39,9 +39,14 @@ export const registerEmployee = createAsyncThunk(
     } catch (error) {
       console.error("Registration Error:", error);
       console.error("Error Response:", error.response?.data);
-      return rejectWithValue(
-        error.response?.data?.message || "Something went wrong"
-      );
+      // ✅ Return full error array if available
+      if (error.response?.data) {
+        return rejectWithValue(error.response.data);
+      }
+
+      // Fallback to generic message
+      return rejectWithValue(error.message || "Something went wrong");
+
     }
   }
 );

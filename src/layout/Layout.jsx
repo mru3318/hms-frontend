@@ -1022,14 +1022,14 @@ const Layout = () => {
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="add-asset">
                       Add New Assets
-                    </a>
+                    </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="asset-list">
                       Manage Assets
-                    </a>
+                    </NavLink>
                   </li>
                 </ul>
               </div>
@@ -1133,14 +1133,14 @@ const Layout = () => {
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="add-health-package">
                       Add Health Packages
-                    </a>
+                    </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="manage-health-packages">
                       Manage Health Packages
-                    </a>
+                    </NavLink>
                   </li>
                 </ul>
               </div>

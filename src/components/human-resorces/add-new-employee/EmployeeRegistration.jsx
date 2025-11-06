@@ -78,7 +78,7 @@ const EmployeeRegistration = () => {
       username: Yup.string().required("Username is required"),
       email: Yup.string().email("Invalid email").required("Email is required"),
       password: Yup.string()
-        .min(6, "Password must be at least 6 characters")
+        .min(8, "Password must be at least 8 characters")
         .matches(/[A-Z]/, "Must contain one uppercase letter")
         .matches(/[0-9]/, "Must contain one number")
         .matches(/[@$!%*?&#~]/, "Must contain one special character")
@@ -112,6 +112,12 @@ const EmployeeRegistration = () => {
               return acc;
             }, {})
           );
+          //  Scroll to the first error field
+          const firstErrorField = Object.keys(errors)[0];
+          document
+            .querySelector(`[name="${firstErrorField}"]`)
+            ?.scrollIntoView({ behavior: "smooth" });
+
           setSubmitting(false);
           return;
         }
@@ -220,41 +226,133 @@ const EmployeeRegistration = () => {
         );
 
         // ...existing code...
-        const hasFiles =
-          values.profilePic instanceof File || values.idProof instanceof File;
+        // const hasFiles =
+        //   values.profilePic instanceof File || values.idProof instanceof File;
 
-        let requestData;
-        if (hasFiles) {
-          // Build FormData for files + payload JSON
-          const formData = new FormData();
+        // let requestData;
 
-          // Append JSON fields as strings
-          formData.append(
-            "dto",
-            new Blob([JSON.stringify(payload)], { type: "application/json" })
-          );
 
-          // Append file uploads separately
-          if (values.profilePic instanceof File) {
-            formData.append("profilePic", values.profilePic);
-          }
-          if (values.idProof instanceof File) {
-            formData.append("idProofPic", values.idProof);
-          }
+        //  4. Always send as FormData (even without files)
+        const formData = new FormData();
+        formData.append(
+          "dto",
+          new Blob([JSON.stringify(payload)], { type: "application/json" })
+        );
 
-          requestData = formData;
-          console.log("✅ Sending FormData with files");
-        } else {
-          // Send as JSON
-          requestData = payload;
-          console.log(
-            "✅ Sending JSON payload:",
-            JSON.stringify(payload, null, 2)
-          );
+        if (values.profilePic instanceof File) {
+          formData.append("profilePic", values.profilePic);
+        }
+        if (values.idProof instanceof File) {
+          formData.append("idProofPic", values.idProof);
         }
 
+        const requestData = formData;
+
+
+
+        // if (hasFiles) {
+        //   // Build FormData for files + payload JSON
+        //   const formData = new FormData();
+
+        //   // Append JSON fields as strings
+        //   formData.append(
+        //     "dto",
+        //     new Blob([JSON.stringify(payload)], { type: "application/json" })
+        //   );
+
+        //   // Append file uploads separately
+        //   if (values.profilePic instanceof File) {
+        //     formData.append("profilePic", values.profilePic);
+        //   }
+        //   if (values.idProof instanceof File) {
+        //     formData.append("idProofPic", values.idProof);
+        //   }
+
+        //   requestData = formData;
+        //   console.log("✅ Sending FormData with files");
+        // } else {
+        //   // Send as JSON
+        //   requestData = payload;
+        //   console.log(
+        //     "✅ Sending JSON payload:",
+        //     JSON.stringify(payload, null, 2)
+        //   );
+        // }
+
+
+
         const resultAction = await dispatch(registerEmployee(requestData));
+        console.log("🔍 Full resultAction:", resultAction);
+        console.log("❌ Error payload:", resultAction.payload);
+
         const status = resultAction?.meta?.requestStatus;
+
+        if (status === "rejected") {
+          // const errMsg = resultAction.payload || resultAction.error?.message || "Registration failed";
+          let errMsg;
+
+          // ✅ Extract error array from Axios response
+          if (resultAction.payload?.response?.data) {
+            errMsg = resultAction.payload.response.data;
+          } else if (Array.isArray(resultAction.payload)) {
+            errMsg = resultAction.payload;
+          } else {
+            errMsg = resultAction.payload || resultAction.error?.message || "Registration failed";
+          }
+
+
+          if (Array.isArray(errMsg)) {
+            const fieldErrors = {};
+
+            errMsg.forEach((err) => {
+              if (err.field && err.defaultMessage) {
+                // Preserve top-level fields like "username", "email"
+
+                // Normalize nested fields like "doctorDto.experience" → "experience"
+                const normalizedField = err.field.includes(".")
+                  ? err.field.split(".").pop()
+                  : err.field;
+                fieldErrors[normalizedField] = err.defaultMessage;
+
+              }
+            });
+
+            formik.setErrors(fieldErrors);
+            console.log("✅ Formik errors set:", fieldErrors);
+
+            formik.setTouched(
+              Object.keys(fieldErrors).reduce((acc, key) => {
+                acc[key] = true;
+                return acc;
+              }, {})
+            );
+            console.log("✅ Formik touched set:", formik.touched);
+
+            const firstField = Object.keys(fieldErrors)[0];
+            if (firstField) {
+              document
+                .querySelector(`[name="${firstField}"]`)
+                ?.scrollIntoView({ behavior: "smooth" });
+            }
+
+            setSubmitting(false);
+            return;
+          }
+          // fallback
+          await Swal.fire({
+            title: "Error",
+            text: typeof errMsg === "string" ? errMsg : "Registration failed",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+
+          setSubmitting(false);
+          return;
+
+
+        }
+
+
 
         if (status === "fulfilled") {
           const serverMessage =
@@ -265,35 +363,36 @@ const EmployeeRegistration = () => {
             icon: "success",
             confirmButtonText: "OK",
           });
-        } else {
-          // Handle backend array errors or a single message
-          let errMsg =
-            resultAction.payload ||
-            resultAction.error?.message ||
-            "Registration failed";
+          // } else {
+          //   // Handle backend array errors or a single message
+          //   let errMsg =
+          //     resultAction.payload ||
+          //     resultAction.error?.message ||
+          //     "Registration failed";
 
-          // Check if it's an array (like your backend response)
-          if (Array.isArray(errMsg)) {
-            // Extract readable messages
-            const messages = errMsg
-              .map((err) => `• ${err.defaultMessage}`)
-              .join("\n");
-            errMsg = messages;
-          } else if (typeof errMsg === "object" && errMsg.defaultMessage) {
-            // Handle single error object
-            errMsg = errMsg.defaultMessage;
-          }
+          //   // Check if it's an array (like your backend response)
+          //   if (Array.isArray(errMsg)) {
+          //     // Extract readable messages
+          //     const messages = errMsg
+          //       .map((err) => `• ${err.defaultMessage}`)
+          //       .join("\n");
+          //     errMsg = messages;
+          //   } else if (typeof errMsg === "object" && errMsg.defaultMessage) {
+          //     // Handle single error object
+          //     errMsg = errMsg.defaultMessage;
+          //   }
 
-          await Swal.fire({
-            title: "Error",
-            text: errMsg,
-            icon: "error",
-            confirmButtonText: "OK",
-          });
+          //   await Swal.fire({
+          //     title: "Error",
+          //     text: errMsg,
+          //     icon: "error",
+          //     confirmButtonText: "OK",
+          //   });
+          // }
+
+          // Reset form after successful registration
+          resetForm();
         }
-
-        // Reset form after successful registration
-        resetForm();
       } catch (err) {
         console.error("❌ Submit Error:", err);
       } finally {
@@ -431,8 +530,8 @@ const EmployeeRegistration = () => {
                     {departmentsStatus === "loading"
                       ? "Loading Departments..."
                       : departmentsStatus === "failed"
-                      ? "Error loading departments"
-                      : "Select Department"}
+                        ? "Error loading departments"
+                        : "Select Department"}
                   </option>
                   {departmentsStatus === "succeeded" &&
                     departments?.map((dept) => (
@@ -463,12 +562,11 @@ const EmployeeRegistration = () => {
                   value={formik.values.qualifications}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  className={`form-control ${
-                    formik.touched.qualifications &&
+                  className={`form-control ${formik.touched.qualifications &&
                     formik.errors.qualifications
-                      ? "is-invalid"
-                      : ""
-                  }`}
+                    ? "is-invalid"
+                    : ""
+                    }`}
                 />
                 <div className="invalid-feedback">
                   {formik.errors.qualifications}
@@ -530,12 +628,11 @@ const EmployeeRegistration = () => {
                   value={formik.values.qualifications}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  className={`form-control ${
-                    formik.touched.qualifications &&
+                  className={`form-control ${formik.touched.qualifications &&
                     formik.errors.qualifications
-                      ? "is-invalid"
-                      : ""
-                  }`}
+                    ? "is-invalid"
+                    : ""
+                    }`}
                 />
                 <div className="invalid-feedback">
                   {formik.errors.qualifications}
@@ -591,12 +688,11 @@ const EmployeeRegistration = () => {
                   value={formik.values.qualifications}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  className={`form-control ${
-                    formik.touched.qualifications &&
+                  className={`form-control ${formik.touched.qualifications &&
                     formik.errors.qualifications
-                      ? "is-invalid"
-                      : ""
-                  }`}
+                    ? "is-invalid"
+                    : ""
+                    }`}
                 />
                 <div className="invalid-feedback">
                   {formik.errors.qualifications}
@@ -638,20 +734,24 @@ const EmployeeRegistration = () => {
             ></button>
           </div>
         )}
-        {error && (
-          <div
-            className="alert alert-danger alert-dismissible fade show"
-            role="alert"
-          >
+        {typeof error === "string" && (
+          <div className="alert alert-danger alert-dismissible fade show" role="alert">
             {error}
-            <button
-              type="button"
-              className="btn-close"
-              data-bs-dismiss="alert"
-              aria-label="Close"
-            ></button>
+            <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
         )}
+
+        {Array.isArray(error) && (
+          <div className="alert alert-danger alert-dismissible fade show" role="alert">
+            <ul className="mb-0">
+              {error.map((err, idx) => (
+                <li key={idx}>{err.defaultMessage}</li>
+              ))}
+            </ul>
+            <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        )}
+
 
         {/* Use formik.handleSubmit on form */}
         <form
@@ -673,11 +773,10 @@ const EmployeeRegistration = () => {
                 value={formik.values.firstName}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${
-                  formik.touched.firstName && formik.errors.firstName
-                    ? "is-invalid"
-                    : ""
-                }`}
+                className={`form-control ${formik.touched.firstName && formik.errors.firstName
+                  ? "is-invalid"
+                  : ""
+                  }`}
               />
               <div className="invalid-feedback">{formik.errors.firstName}</div>
             </div>
@@ -692,11 +791,10 @@ const EmployeeRegistration = () => {
                 value={formik.values.lastName}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${
-                  formik.touched.lastName && formik.errors.lastName
-                    ? "is-invalid"
-                    : ""
-                }`}
+                className={`form-control ${formik.touched.lastName && formik.errors.lastName
+                  ? "is-invalid"
+                  : ""
+                  }`}
               />
               <div className="invalid-feedback">{formik.errors.lastName}</div>
             </div>
@@ -714,11 +812,10 @@ const EmployeeRegistration = () => {
                 value={formik.values.mobileNumber}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${
-                  formik.touched.mobileNumber && formik.errors.mobileNumber
-                    ? "is-invalid"
-                    : ""
-                }`}
+                className={`form-control ${formik.touched.mobileNumber && formik.errors.mobileNumber
+                  ? "is-invalid"
+                  : ""
+                  }`}
               />
               <div className="invalid-feedback">
                 {formik.errors.mobileNumber}
@@ -735,11 +832,10 @@ const EmployeeRegistration = () => {
                 value={formik.values.email}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${
-                  formik.touched.email && formik.errors.email
-                    ? "is-invalid"
-                    : ""
-                }`}
+                className={`form-control ${formik.touched.email && formik.errors.email
+                  ? "is-invalid"
+                  : ""
+                  }`}
               />
               <div className="invalid-feedback">{formik.errors.email}</div>
             </div>
@@ -757,11 +853,10 @@ const EmployeeRegistration = () => {
                 value={formik.values.username}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${
-                  formik.touched.username && formik.errors.username
-                    ? "is-invalid"
-                    : ""
-                }`}
+                className={`form-control ${formik.touched.username && formik.errors.username
+                  ? "is-invalid"
+                  : ""
+                  }`}
               />
               <div className="invalid-feedback">{formik.errors.username}</div>
             </div>
@@ -779,11 +874,10 @@ const EmployeeRegistration = () => {
                 value={formik.values.password}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${
-                  formik.touched.password && formik.errors.password
-                    ? "is-invalid"
-                    : ""
-                }`}
+                className={`form-control ${formik.touched.password && formik.errors.password
+                  ? "is-invalid"
+                  : ""
+                  }`}
               />
               <div className="invalid-feedback">{formik.errors.password}</div>
             </div>
@@ -798,12 +892,11 @@ const EmployeeRegistration = () => {
                 value={formik.values.confirmPassword}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${
-                  formik.touched.confirmPassword &&
+                className={`form-control ${formik.touched.confirmPassword &&
                   formik.errors.confirmPassword
-                    ? "is-invalid"
-                    : ""
-                }`}
+                  ? "is-invalid"
+                  : ""
+                  }`}
               />
               <div className="invalid-feedback">
                 {formik.errors.confirmPassword}
@@ -842,11 +935,10 @@ const EmployeeRegistration = () => {
               </label>
               <select
                 name="gender"
-                className={`form-select ${
-                  formik.touched.gender && formik.errors.gender
-                    ? "is-invalid"
-                    : ""
-                }`}
+                className={`form-select ${formik.touched.gender && formik.errors.gender
+                  ? "is-invalid"
+                  : ""
+                  }`}
                 value={formik.values.gender}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -869,9 +961,8 @@ const EmployeeRegistration = () => {
                 value={formik.values.dob}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${
-                  formik.touched.dob && formik.errors.dob ? "is-invalid" : ""
-                }`}
+                className={`form-control ${formik.touched.dob && formik.errors.dob ? "is-invalid" : ""
+                  }`}
               />
               <div className="invalid-feedback">{formik.errors.dob}</div>
             </div>
@@ -932,11 +1023,10 @@ const EmployeeRegistration = () => {
                   type="text"
                   id="addressLine1"
                   name="addressLine1"
-                  className={`form-control ${
-                    formik.touched.addressLine1 && formik.errors.addressLine1
-                      ? "is-invalid"
-                      : ""
-                  }`}
+                  className={`form-control ${formik.touched.addressLine1 && formik.errors.addressLine1
+                    ? "is-invalid"
+                    : ""
+                    }`}
                   placeholder="Enter Address Line 1"
                   value={formik.values.addressLine1}
                   onChange={formik.handleChange}
@@ -971,11 +1061,10 @@ const EmployeeRegistration = () => {
                 <select
                   id="state"
                   name="state"
-                  className={`form-select ${
-                    formik.touched.state && formik.errors.state
-                      ? "is-invalid"
-                      : ""
-                  }`}
+                  className={`form-select ${formik.touched.state && formik.errors.state
+                    ? "is-invalid"
+                    : ""
+                    }`}
                   onChange={handleStateChange}
                   onBlur={formik.handleBlur}
                   value={formik.values.state}
@@ -1025,11 +1114,10 @@ const EmployeeRegistration = () => {
                   type="text"
                   id="city"
                   name="city"
-                  className={`form-control ${
-                    formik.touched.city && formik.errors.city
-                      ? "is-invalid"
-                      : ""
-                  }`}
+                  className={`form-control ${formik.touched.city && formik.errors.city
+                    ? "is-invalid"
+                    : ""
+                    }`}
                   value={formik.values.city}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
@@ -1118,9 +1206,8 @@ const EmployeeRegistration = () => {
               <label className="form-label fw-semibold">Role</label>
               <select
                 name="role"
-                className={`form-select ${
-                  formik.touched.role && formik.errors.role ? "is-invalid" : ""
-                }`}
+                className={`form-select ${formik.touched.role && formik.errors.role ? "is-invalid" : ""
+                  }`}
                 {...formik.getFieldProps("role")}
               >
                 <option value="">Select Role</option>

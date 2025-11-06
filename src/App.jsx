@@ -20,6 +20,10 @@ import EmployeeRegistration from "./components/human-resorces/add-new-employee/E
 import ManageDepartment from "./components/department/ManageDepartment";
 import UpdateDepartment from "./components/department/UpdateDepartment";
 import AddDepartment from "./components/department/AddDepartment";
+import AddAsset from "./components/asset-management/add-asset/AddAsset";
+import AssetList from "./components/asset-management/asset-list/AssetList";
+import AddHealthPackage from "./components/helth-package/add-helth-package/AddHealthPackage";
+import HealthPackages from "./components/helth-package/manage-helth-package/HealthPackages";
 
 function App() {
   const router = createBrowserRouter([
@@ -119,6 +123,26 @@ function App() {
         {
           path: "add-department",
           element: <AddDepartment />,
+        },
+
+        // Asset Management Routes
+        {
+          path: "add-asset",
+          element: <AddAsset />,
+        },
+        {
+          path: "asset-list",
+          element: <AssetList />,
+        },
+
+        //Helth Package Routes
+        {
+          path: "add-health-package",
+          element: <AddHealthPackage />,
+        },
+        {
+          path: "manage-health-packages",
+          element: <HealthPackages />,
         },
       ],
     },

@@ -8,7 +8,7 @@ import {
   selectForgotError,
   selectForgotMessage,
   selectForgotStep,
-} from "../../../features/registerSlice"; // adjust path if needed
+} from "../../../features/forgotPasswordSlice"; // adjust path if needed
 import { useNavigate } from "react-router-dom";
 
 const ForgotPassword = () => {
