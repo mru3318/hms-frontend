@@ -253,33 +253,6 @@ const EmployeeRegistration = () => {
           );
         }
 
-        // ...existing code...
-        // const resultAction = await dispatch(registerEmployee(requestData));
-        // // RTK returns the action — check requestStatus or action type
-        // const status = resultAction?.meta?.requestStatus;
-        // if (status === "fulfilled") {
-        //   const serverMessage =
-        //     resultAction.payload?.message || "Registration Successful";
-        //   await Swal.fire({
-        //     title: "Success!",
-        //     text: serverMessage,
-        //     icon: "success",
-        //     confirmButtonText: "OK",
-        //   });
-        // } else {
-        //   // payload contains rejectWithValue message when used; fallback to error.message
-        //   const errMsg =
-        //     resultAction.payload ||
-        //     resultAction.error?.message ||
-        //     "Registration failed";
-        //   await Swal.fire({
-        //     title: "Error",
-        //     text: errMsg,
-        //     icon: "error",
-        //     confirmButtonText: "OK",
-        //   });
-        // }
-
         const resultAction = await dispatch(registerEmployee(requestData));
         const status = resultAction?.meta?.requestStatus;
 
