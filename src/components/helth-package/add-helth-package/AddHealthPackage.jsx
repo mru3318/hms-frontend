@@ -1,16 +1,89 @@
 import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { addHealthPackage } from "../../../features/healthPackageSlice";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 const AddHealthPackage = () => {
-  const [fileName, setFileName] = useState("No icon chosen");
+  const dispatch = useDispatch();
+
+  const [formData, setFormData] = useState({
+    code: "",
+    name: "",
+    description: "",
+    price: "",
+    image: null,
+  });
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setFileName(file ? file.name : "No icon chosen");
+    setFormData({ ...formData, image: file });
   };
 
-  const handleSubmit = (e) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("Health package saved successfully!");
+
+    // Basic validation
+    if (
+      !formData.code.trim() ||
+      !formData.name.trim() ||
+      !formData.description.trim() ||
+      !formData.price
+    ) {
+      await Swal.fire({
+        title: "Validation Error!",
+        text: "Please fill in all required fields",
+        icon: "warning",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
+    // Create the package data object
+    const packageData = {
+      code: formData.code,
+      name: formData.name,
+      description: formData.description,
+      price: parseFloat(formData.price),
+    };
+
+    // If you need to send image as well, you might need FormData
+    // For now, sending JSON data
+    try {
+      await dispatch(addHealthPackage(packageData)).unwrap();
+
+      // Reset form on success
+      setFormData({
+        code: "",
+        name: "",
+        description: "",
+        price: "",
+        image: null,
+      });
+
+      await Swal.fire({
+        title: "Success!",
+        text: "Health package saved successfully!",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+    } catch (err) {
+      // Check for specific error types
+      const errorMessage =
+        err?.message || err || "Failed to save health package";
+
+      await Swal.fire({
+        title: "Error!",
+        text: errorMessage,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
   };
 
   return (
@@ -39,7 +112,10 @@ const AddHealthPackage = () => {
               type="text"
               className="form-control"
               id="packageCode"
+              name="code"
               placeholder="Enter code"
+              value={formData.code}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -49,7 +125,10 @@ const AddHealthPackage = () => {
               type="text"
               className="form-control"
               id="packageName"
+              name="name"
               placeholder="Enter name"
+              value={formData.name}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -64,7 +143,10 @@ const AddHealthPackage = () => {
               type="text"
               className="form-control"
               id="packageDescription"
+              name="description"
               placeholder="Enter description"
+              value={formData.description}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -77,7 +159,10 @@ const AddHealthPackage = () => {
               type="number"
               className="form-control"
               id="packagePrice"
+              name="price"
               placeholder="Enter price"
+              value={formData.price}
+              onChange={handleInputChange}
               required
             />
           </div>

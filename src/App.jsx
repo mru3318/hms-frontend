@@ -26,6 +26,11 @@ import AddHealthPackage from "./components/helth-package/add-helth-package/AddHe
 import HealthPackages from "./components/helth-package/manage-helth-package/HealthPackages";
 import UpdateHelthPackage from "./components/helth-package/update-package/UpdateHelthPackage";
 import UpdateAsset from "./components/asset-management/update-asset/UpdateAsset";
+import AddNewDonor from "./components/blood-bank/add-new-donor/AddNewDonor";
+import ManageDonor from "./components/blood-bank/manage-donor/ManageDonor";
+import AddBloodStock from "./components/blood-bank/add-stock/AddBloodStock";
+import BloodStock from "./components/blood-bank/blood-stock/BloodStock";
+import AddDonor from "./components/blood-bank/add-donor/AddDonor";
 
 function App() {
   const router = createBrowserRouter([
@@ -153,6 +158,28 @@ function App() {
         {
           path: "update-health-package/:id",
           element: <UpdateHelthPackage />,
+        },
+
+        // Donor Management Routes
+        {
+          path: "add-new-donor",
+          element: <AddNewDonor />,
+        },
+        {
+          path: "manage-donors",
+          element: <ManageDonor />,
+        },
+        {
+          path: "add-stock",
+          element: <AddBloodStock />,
+        },
+        {
+          path: "blood-stock",
+          element: <BloodStock />,
+        },
+        {
+          path: "add-donor",
+          element: <AddDonor />,
         },
       ],
     },

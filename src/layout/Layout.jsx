@@ -942,29 +942,24 @@ const Layout = () => {
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="add-new-donor">
                       Add New Donor
-                    </a>
+                    </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
-                      Manage Donors (Edit, Delete)
-                    </a>
+                    <NavLink className="nav-link" to="manage-donors">
+                      Manage Donors
+                    </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
-                      Add Stock
-                    </a>
+                    <NavLink className="nav-link" to="add-stock">
+                      Add Blood Stock
+                    </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
-                      Manage Stock (Edit, Delete, Request Stock)
-                    </a>
-                  </li>
-                  <li className="nav-item">
-                    <a className="nav-link" href="#">
-                      Pricing
-                    </a>
+                    <NavLink className="nav-link" to="blood-stock">
+                      Manage Blood Stock
+                    </NavLink>
                   </li>
                 </ul>
               </div>

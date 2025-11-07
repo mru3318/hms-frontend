@@ -1,77 +1,63 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchHealthPackages,
+  deleteHealthPackage,
+} from "../../../features/healthPackageSlice";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 const HealthPackages = () => {
-  const [showModal, setShowModal] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState(null);
+  const dispatch = useDispatch();
+  const {
+    packages: healthPackages,
+    status,
+    error,
+  } = useSelector((state) => state.healthPackages);
 
-  // Example package data
-  const healthPackages = [
-    {
-      id: 1,
-      name: "Heart Checkup",
-      code: "H001",
-      image: "image/heart.png",
-      price: "₹1999",
-      description:
-        "A complete cardiac health screening including ECG, cholesterol, and blood pressure evaluation.",
-    },
-    {
-      id: 2,
-      name: "Kidney Care",
-      code: "H002",
-      image: "image/kidney.png",
-      price: "₹1499",
-      description:
-        "Includes tests to evaluate kidney function and detect early signs of kidney disease.",
-    },
-    {
-      id: 3,
-      name: "Liver Health",
-      code: "H003",
-      image: "image/liver.png",
-      price: "₹1799",
-      description:
-        "Comprehensive liver profile to assess enzyme levels and liver functionality.",
-    },
-    {
-      id: 4,
-      name: "Brain Scan",
-      code: "H004",
-      image: "image/brain.png",
-      price: "₹2499",
-      description:
-        "Neurological health screening to detect abnormalities and assess brain health.",
-    },
-    {
-      id: 5,
-      name: "Orthopedic Package",
-      code: "H005",
-      image: "image/orthopedic.png",
-      price: "₹1399",
-      description:
-        "Bone density test and joint assessment for musculoskeletal wellness.",
-    },
-    {
-      id: 6,
-      name: "Pancreas Screening",
-      code: "H006",
-      image: "image/pancreas.png",
-      price: "₹1699",
-      description:
-        "Tests to evaluate pancreatic enzymes and overall digestive health.",
-    },
-  ];
+  // Fetch health packages from backend on component mount
+  useEffect(() => {
+    dispatch(fetchHealthPackages());
+  }, [dispatch]);
 
   // Handle delete
-  const handleDelete = (pkg) => {
-    setSelectedPackage(pkg);
-    setShowModal(true);
+  const handleDelete = async (pkg) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Do you want to delete "${pkg?.name}"? This action cannot be undone!`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await dispatch(deleteHealthPackage(pkg.id)).unwrap();
+
+        await Swal.fire({
+          title: "Deleted!",
+          text: "Health package has been deleted successfully.",
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+      } catch (err) {
+        await Swal.fire({
+          title: "Error!",
+          text: err?.message || "Failed to delete health package",
+          icon: "error",
+          confirmButtonText: "OK",
+        });
+      }
+    }
   };
 
-  const confirmDelete = () => {
-    alert(`Deleted ${selectedPackage?.name} successfully!`);
-    setShowModal(false);
-  };
+  const loading = status === "loading";
+
+  // Ensure healthPackages is always an array
+  const packagesList = Array.isArray(healthPackages) ? healthPackages : [];
 
   return (
     <div className="container my-4 p-0 m-0">
@@ -92,66 +78,90 @@ const HealthPackages = () => {
 
       {/* Packages Grid */}
       <div className="container-fluid">
-        <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 my-3">
-          {healthPackages.map((pkg, index) => (
-            <div className="col" key={pkg.id}>
-              <div className="card h-100 shadow-sm">
-                <div className="card-body">
-                  <div className="card-title d-flex justify-content-between align-items-center">
-                    <span className="name fw-semibold">{pkg.name}</span>
-                    <img
-                      className="image"
-                      src={pkg.image}
-                      alt={pkg.name}
-                      style={{ width: "40px", height: "40px" }}
-                    />
-                  </div>
+        {loading ? (
+          <div className="text-center my-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="mt-2">Loading health packages...</p>
+          </div>
+        ) : error ? (
+          <div className="alert alert-danger my-3" role="alert">
+            <i className="fa-solid fa-exclamation-triangle me-2"></i>
+            Error: {error}
+          </div>
+        ) : packagesList.length === 0 ? (
+          <div className="alert alert-info my-3" role="alert">
+            <i className="fa-solid fa-info-circle me-2"></i>
+            No health packages available.
+          </div>
+        ) : (
+          <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 my-3">
+            {packagesList.map((pkg, index) => (
+              <div className="col" key={pkg.id}>
+                <div className="card h-100 shadow-sm">
+                  <div className="card-body">
+                    <div className="card-title d-flex justify-content-between align-items-center">
+                      <span className="name fw-semibold">{pkg.name}</span>
+                      <img
+                        className="image"
+                        src={pkg.image}
+                        alt={pkg.name}
+                        style={{ width: "40px", height: "40px" }}
+                      />
+                    </div>
 
-                  <h6 className="card-subtitle mb-2 text-muted">
-                    Code: {pkg.code}
-                  </h6>
+                    <h6 className="card-subtitle mb-2 text-muted">
+                      Code: {pkg.code}
+                    </h6>
 
-                  {/* Accordion */}
-                  <div className="accordion mb-3" id={`accordion-${index}`}>
-                    <div className="accordion-item">
-                      <h2 className="accordion-header" id={`heading-${index}`}>
-                        <button
-                          className="accordion-button collapsed"
-                          type="button"
-                          data-bs-toggle="collapse"
-                          data-bs-target={`#collapse-${index}`}
-                          aria-expanded="false"
-                          aria-controls={`collapse-${index}`}
+                    {/* Accordion */}
+                    <div className="accordion mb-3" id={`accordion-${index}`}>
+                      <div className="accordion-item">
+                        <h2
+                          className="accordion-header"
+                          id={`heading-${index}`}
                         >
-                          Description
-                        </button>
-                      </h2>
-                      <div
-                        id={`collapse-${index}`}
-                        className="accordion-collapse collapse"
-                        aria-labelledby={`heading-${index}`}
-                        data-bs-parent={`#accordion-${index}`}
-                      >
-                        <div className="accordion-body">{pkg.description}</div>
+                          <button
+                            className="accordion-button collapsed"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target={`#collapse-${index}`}
+                            aria-expanded="false"
+                            aria-controls={`collapse-${index}`}
+                          >
+                            Description
+                          </button>
+                        </h2>
+                        <div
+                          id={`collapse-${index}`}
+                          className="accordion-collapse collapse"
+                          aria-labelledby={`heading-${index}`}
+                          data-bs-parent={`#accordion-${index}`}
+                        >
+                          <div className="accordion-body">
+                            {pkg.description}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <p className="card-text fw-semibold">Price: {pkg.price}</p>
-                  <button className="btn btn-primary me-2">
-                    <i className="fa-solid fa-pen-to-square me-1"></i>Edit
-                  </button>
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => handleDelete(pkg)}
-                  >
-                    <i className="fa-solid fa-trash-can me-1"></i>Delete
-                  </button>
+                    <p className="card-text fw-semibold">Price: {pkg.price}</p>
+                    <button className="btn btn-primary me-2">
+                      <i className="fa-solid fa-pen-to-square me-1"></i>Edit
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => handleDelete(pkg)}
+                    >
+                      <i className="fa-solid fa-trash-can me-1"></i>Delete
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

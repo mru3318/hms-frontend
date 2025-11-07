@@ -124,9 +124,12 @@ const AssetList = () => {
       <div className="container">
         {/* Back Button */}
         <div className="text-end mb-3">
-          <a href="/hospital-assets" className="btn  text-dark bg-secondary">
+          <NavLink
+            to="/dashboard/add-asset"
+            className="btn  text-dark bg-secondary"
+          >
             ← Back to Form
-          </a>
+          </NavLink>
         </div>
 
         {/* Responsive Table Wrapper */}
