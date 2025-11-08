@@ -6,6 +6,8 @@ import {
 } from "../../../features/healthPackageSlice";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
+import "./HealthPackages.css";
+import { NavLink } from "react-router-dom";
 
 const HealthPackages = () => {
   const dispatch = useDispatch();
@@ -15,43 +17,73 @@ const HealthPackages = () => {
     error,
   } = useSelector((state) => state.healthPackages);
 
-  // Fetch health packages from backend on component mount
+  // Fetch health packages from backend on component mount (with error handling)
   useEffect(() => {
-    dispatch(fetchHealthPackages());
+    let mounted = true;
+
+    const load = async () => {
+      try {
+        // unwrap to throw if rejected
+        await dispatch(fetchHealthPackages()).unwrap();
+      } catch (err) {
+        // Log error; many browser/runtime errors (extensions) surface as
+        // "message port closed" in console — still surface the real error
+        console.error("Failed to load health packages:", err);
+      }
+    };
+
+    if (mounted) load();
+
+    return () => {
+      mounted = false;
+    };
   }, [dispatch]);
 
-  // Handle delete
-  const handleDelete = async (pkg) => {
-    const result = await Swal.fire({
+  // Debug: log packages and status when loading finishes
+  useEffect(() => {
+    if (status !== "loading") {
+      console.debug("healthPackages state:", { status, error, healthPackages });
+    }
+  }, [status, error, healthPackages]);
+
+  // Handle delete (uses SweetAlert2 preConfirm to show loader and inline errors)
+  const handleDelete = (id, name) => {
+    Swal.fire({
       title: "Are you sure?",
-      text: `Do you want to delete "${pkg?.name}"? This action cannot be undone!`,
+      html: `Do you want to delete "<strong>${
+        name || id
+      }</strong>"? This action cannot be undone!`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, delete it!",
       cancelButtonText: "Cancel",
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await dispatch(deleteHealthPackage(pkg.id)).unwrap();
-
-        await Swal.fire({
+      focusCancel: true,
+      showLoaderOnConfirm: true,
+      preConfirm: () => {
+        return dispatch(deleteHealthPackage(id))
+          .unwrap()
+          .then((res) => res)
+          .catch((err) => {
+            const message =
+              err?.message ||
+              err?.error ||
+              JSON.stringify(err) ||
+              "Failed to delete health package";
+            Swal.showValidationMessage(message);
+            throw err;
+          });
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        Swal.fire({
           title: "Deleted!",
           text: "Health package has been deleted successfully.",
           icon: "success",
-          confirmButtonText: "OK",
-        });
-      } catch (err) {
-        await Swal.fire({
-          title: "Error!",
-          text: err?.message || "Failed to delete health package",
-          icon: "error",
-          confirmButtonText: "OK",
         });
       }
-    }
+    });
   };
 
   const loading = status === "loading";
@@ -60,10 +92,10 @@ const HealthPackages = () => {
   const packagesList = Array.isArray(healthPackages) ? healthPackages : [];
 
   return (
-    <div className="container my-4 p-0 m-0">
+    <div className="container-fluid my-4 p-0 m-0">
       {/* Header */}
-      <div className="card-border">
-        <div className="card-header d-flex justify-content-center align-items-center">
+      <div className="card-border w-100">
+        <div className="card-header d-flex justify-content-center align-items-center px-0">
           <div className="text-center d-flex align-items-center">
             <i
               className="fa-solid fa-notes-medical me-2"
@@ -147,12 +179,15 @@ const HealthPackages = () => {
                     </div>
 
                     <p className="card-text fw-semibold">Price: {pkg.price}</p>
-                    <button className="btn btn-primary me-2">
+                    <NavLink
+                      className="btn btn-primary me-2"
+                      to={`/dashboard/update-health-package/${pkg.id}`}
+                    >
                       <i className="fa-solid fa-pen-to-square me-1"></i>Edit
-                    </button>
+                    </NavLink>
                     <button
                       className="btn btn-danger"
-                      onClick={() => handleDelete(pkg)}
+                      onClick={() => handleDelete(pkg.id, pkg.name)}
                     >
                       <i className="fa-solid fa-trash-can me-1"></i>Delete
                     </button>

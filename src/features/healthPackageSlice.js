@@ -9,7 +9,29 @@ export const fetchHealthPackages = createAsyncThunk(
     try {
       const response = await axios.get(`${API_BASE_URL}/health-package`);
       console.log("fetchHealthPackages API response:", response.data);
-      return response.data;
+
+      // Normalize common response shapes into an array of packages
+      const payload = response.data;
+      if (Array.isArray(payload)) {
+        return payload;
+      }
+
+      // If payload is an object, try common properties (include dataList)
+      const maybeArray =
+        payload?.dataList ||
+        payload?.data ||
+        payload?.healthPackages ||
+        payload?.packages ||
+        payload?.content ||
+        [];
+
+      // Also handle nested shapes like payload.data.content or payload.data.dataList
+      if (!Array.isArray(maybeArray) && payload?.data) {
+        const nested = payload.data?.dataList || payload.data?.content || [];
+        return Array.isArray(nested) ? nested : [];
+      }
+
+      return Array.isArray(maybeArray) ? maybeArray : [];
     } catch (error) {
       console.error("fetchHealthPackages error:", error);
       return rejectWithValue(
@@ -25,14 +47,25 @@ export const addHealthPackage = createAsyncThunk(
   async (packageData, { rejectWithValue }) => {
     try {
       console.log("Adding health package:", packageData);
-      const response = await axios.post(
-        `${API_BASE_URL}/health-package`,
-        packageData,
-        {
+      let config = {};
+
+      if (packageData instanceof FormData) {
+        // If it's FormData (with files), DON'T set Content-Type header here.
+        // Let the browser/axios set the proper multipart boundary automatically.
+        config = {};
+      } else {
+        // If it's a regular object (no files), send as JSON
+        config = {
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        };
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/health-package`,
+        packageData,
+        config
       );
       console.log("addHealthPackage API response:", response.data);
       return response.data;
@@ -51,14 +84,19 @@ export const updateHealthPackage = createAsyncThunk(
   async ({ id, packageData }, { rejectWithValue }) => {
     try {
       console.log("Updating health package:", id, packageData);
+
+      // Allow sending FormData (with files) or JSON. If FormData, do not set Content-Type
+      let config = {};
+      if (packageData instanceof FormData) {
+        config = {};
+      } else {
+        config = { headers: { "Content-Type": "application/json" } };
+      }
+
       const response = await axios.put(
         `${API_BASE_URL}/health-package/${id}`,
         packageData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+        config
       );
       console.log("updateHealthPackage API response:", response.data);
       return response.data;
@@ -78,7 +116,7 @@ export const deleteHealthPackage = createAsyncThunk(
     try {
       console.log("Deleting health package:", id);
       const response = await axios.delete(
-        `${API_BASE_URL}/health-package/${id}`
+        `${API_BASE_URL}/health-package/delete/${id}`
       );
       console.log("deleteHealthPackage API response:", response.data);
       return id; // Return the deleted package ID

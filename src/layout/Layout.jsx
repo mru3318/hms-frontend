@@ -600,14 +600,14 @@ const Layout = () => {
                     </ul>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="baby-birth-certificate">
                       Birth Reports
-                    </a>
+                    </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="death-certificate">
                       Death Reports
-                    </a>
+                    </NavLink>
                   </li>
                 </ul>
               </div>
@@ -1029,7 +1029,7 @@ const Layout = () => {
                 </ul>
               </div>
             </li>
-            <li className="nav-item">
+            {/* <li className="nav-item">
               <a
                 className="nav-link"
                 href="#"
@@ -1069,7 +1069,7 @@ const Layout = () => {
                   </li>
                 </ul>
               </div>
-            </li>
+            </li> */}
             <li className="nav-item">
               <a
                 className="nav-link"

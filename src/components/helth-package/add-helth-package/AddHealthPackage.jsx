@@ -44,18 +44,26 @@ const AddHealthPackage = () => {
       return;
     }
 
-    // Create the package data object
-    const packageData = {
+    const form = new FormData();
+    // Append DTO as a JSON blob so Spring can bind the @RequestPart("dto") to a DTO
+    const dto = {
       code: formData.code,
       name: formData.name,
       description: formData.description,
       price: parseFloat(formData.price),
     };
+    form.append(
+      "dto",
+      new Blob([JSON.stringify(dto)], { type: "application/json" })
+    );
+    if (formData.image) {
+      // ensure the field name matches what backend expects (commonly 'image' or 'file')
+      form.append("image", formData.image);
+    }
 
-    // If you need to send image as well, you might need FormData
-    // For now, sending JSON data
     try {
-      await dispatch(addHealthPackage(packageData)).unwrap();
+      // Dispatch FormData to the thunk. The thunk will forward it to the API.
+      await dispatch(addHealthPackage(form)).unwrap();
 
       // Reset form on success
       setFormData({

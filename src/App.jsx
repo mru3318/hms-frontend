@@ -31,6 +31,8 @@ import ManageDonor from "./components/blood-bank/manage-donor/ManageDonor";
 import AddBloodStock from "./components/blood-bank/add-stock/AddBloodStock";
 import BloodStock from "./components/blood-bank/blood-stock/BloodStock";
 import AddDonor from "./components/blood-bank/add-donor/AddDonor";
+import BabyBirthCertificate from "./components/reports/baby-birth-certificate/BabyBirthCertificate";
+import DeathCertificateForm from "./components/reports/deth-certificate/DeathCertificateForm";
 
 function App() {
   const router = createBrowserRouter([
@@ -180,6 +182,16 @@ function App() {
         {
           path: "add-donor",
           element: <AddDonor />,
+        },
+
+        //reports routes here
+        {
+          path: "baby-birth-certificate",
+          element: <BabyBirthCertificate />,
+        },
+        {
+          path: "death-certificate",
+          element: <DeathCertificateForm />,
         },
       ],
     },
