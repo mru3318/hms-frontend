@@ -97,7 +97,7 @@ const ManageDepartment = () => {
   };
 
   return (
-    <div className="card shadow">
+    <div className="card full-width-card shadow">
       {/* Header */}
       <div
         className="card-header text-white text-center"

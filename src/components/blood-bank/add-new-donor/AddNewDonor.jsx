@@ -1,6 +1,6 @@
 const AddNewDonation = () => {
   return (
-    <div className="card shadow-lg">
+    <div className="card full-width-card shadow-lg w-100">
       <div className="card-header  font-size d-flex justify-content-center align-items-center">
         <i className="fa-solid fa-droplet me-2"></i>
         <h4 className="mb-0">Add New Donation</h4>

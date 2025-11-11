@@ -131,206 +131,204 @@ const AddAsset = () => {
         </div>
       </div>
 
+      {/* Form Section */}
       <div className="container">
-        {/* Form Section */}
-        <div className="card shadow-sm p-4 mt-3">
-          <h4 className="mb-3">Add Asset Details</h4>
+        <h4 className="mb-3">Add Asset Details</h4>
 
-          <form id="assetForm" onSubmit={handleSubmit}>
-            <div className="row">
-              <div className="col-md-6 mb-3">
-                <label htmlFor="assetId" className="form-label">
-                  Asset ID <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="assetId"
-                  name="assetId"
-                  value={formData.assetId}
-                  onChange={handleChange}
-                  placeholder="e.g., AST-001"
-                  required
-                />
-              </div>
-
-              <div className="col-md-6 mb-3">
-                <label htmlFor="serialNumber" className="form-label">
-                  Serial Number <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="serialNumber"
-                  name="serialNumber"
-                  value={formData.serialNumber}
-                  onChange={handleChange}
-                  placeholder="e.g., SN-563920"
-                  required
-                />
-              </div>
-
-              <div className="col-md-6 mb-3">
-                <label htmlFor="model" className="form-label">
-                  Model <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="model"
-                  name="model"
-                  value={formData.model}
-                  onChange={handleChange}
-                  placeholder="e.g., Dell Latitude 5520"
-                  required
-                />
-              </div>
-
-              <div className="col-md-6 mb-3">
-                <label htmlFor="vendor" className="form-label">
-                  Vendor <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="vendor"
-                  name="vendor"
-                  value={formData.vendor}
-                  onChange={handleChange}
-                  placeholder="e.g., Dell Technologies Pvt Ltd"
-                  required
-                />
-              </div>
-
-              <div className="col-md-6 mb-3">
-                <label htmlFor="purchaseDate" className="form-label">
-                  Purchase Date <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="date"
-                  className="form-control"
-                  id="purchaseDate"
-                  name="purchaseDate"
-                  value={formData.purchaseDate}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="col-md-6 mb-3">
-                <label htmlFor="warrantyDate" className="form-label">
-                  Warranty Date <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="date"
-                  className="form-control"
-                  id="warrantyDate"
-                  name="warrantyDate"
-                  value={formData.warrantyDate}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="col-md-6 mb-3">
-                <label htmlFor="departmentBranch" className="form-label">
-                  Department/Branch
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="departmentBranch"
-                  name="departmentBranch"
-                  value={formData.departmentBranch}
-                  onChange={handleChange}
-                  placeholder="e.g., IT Department - Main Building"
-                />
-              </div>
-
-              <div className="col-md-6 mb-3">
-                <label htmlFor="status" className="form-label">
-                  Status <span className="text-danger">*</span>
-                </label>
-                <select
-                  className="form-select"
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">-- Select Status --</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                  <option value="MAINTENANCE">Under Maintenance</option>
-                  <option value="RETIRED">Retired</option>
-                </select>
-              </div>
-
-              <div className="col-12 mb-3">
-                <label htmlFor="amcCmcDetails" className="form-label">
-                  AMC/CMC Details
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="amcCmcDetails"
-                  name="amcCmcDetails"
-                  value={formData.amcCmcDetails}
-                  onChange={handleChange}
-                  placeholder="e.g., AMC valid till 2027 (Includes onsite support)"
-                />
-              </div>
-
-              <div className="col-12 mb-3">
-                <label htmlFor="remarksNotes" className="form-label">
-                  Remarks/Notes
-                </label>
-                <textarea
-                  className="form-control"
-                  id="remarksNotes"
-                  name="remarksNotes"
-                  value={formData.remarksNotes}
-                  onChange={handleChange}
-                  rows="3"
-                  placeholder="Enter any additional notes or remarks"
-                ></textarea>
-              </div>
+        <form id="assetForm" onSubmit={handleSubmit}>
+          <div className="row">
+            <div className="col-md-6 mb-3">
+              <label htmlFor="assetId" className="form-label">
+                Asset ID <span className="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="assetId"
+                name="assetId"
+                value={formData.assetId}
+                onChange={handleChange}
+                placeholder="e.g., AST-001"
+                required
+              />
             </div>
 
-            <div className="d-flex justify-content-center gap-2 mt-3">
-              <button
-                type="submit"
-                className="btn btn-success"
-                style={{ backgroundColor: "#01C0C8", border: "none" }}
-                disabled={addAssetStatus === "loading"}
-              >
-                {addAssetStatus === "loading" ? (
-                  <>
-                    <span
-                      className="spinner-border spinner-border-sm me-2"
-                      role="status"
-                      aria-hidden="true"
-                    ></span>
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <i className="fa-solid fa-plus me-1"></i> Add Asset
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => navigate("/dashboard/asset-list")}
-                disabled={addAssetStatus === "loading"}
-              >
-                <i className="fa-solid fa-eye me-1"></i> View All Assets
-              </button>
+            <div className="col-md-6 mb-3">
+              <label htmlFor="serialNumber" className="form-label">
+                Serial Number <span className="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="serialNumber"
+                name="serialNumber"
+                value={formData.serialNumber}
+                onChange={handleChange}
+                placeholder="e.g., SN-563920"
+                required
+              />
             </div>
-          </form>
-        </div>
+
+            <div className="col-md-6 mb-3">
+              <label htmlFor="model" className="form-label">
+                Model <span className="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="model"
+                name="model"
+                value={formData.model}
+                onChange={handleChange}
+                placeholder="e.g., Dell Latitude 5520"
+                required
+              />
+            </div>
+
+            <div className="col-md-6 mb-3">
+              <label htmlFor="vendor" className="form-label">
+                Vendor <span className="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="vendor"
+                name="vendor"
+                value={formData.vendor}
+                onChange={handleChange}
+                placeholder="e.g., Dell Technologies Pvt Ltd"
+                required
+              />
+            </div>
+
+            <div className="col-md-6 mb-3">
+              <label htmlFor="purchaseDate" className="form-label">
+                Purchase Date <span className="text-danger">*</span>
+              </label>
+              <input
+                type="date"
+                className="form-control"
+                id="purchaseDate"
+                name="purchaseDate"
+                value={formData.purchaseDate}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="col-md-6 mb-3">
+              <label htmlFor="warrantyDate" className="form-label">
+                Warranty Date <span className="text-danger">*</span>
+              </label>
+              <input
+                type="date"
+                className="form-control"
+                id="warrantyDate"
+                name="warrantyDate"
+                value={formData.warrantyDate}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="col-md-6 mb-3">
+              <label htmlFor="departmentBranch" className="form-label">
+                Department/Branch
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="departmentBranch"
+                name="departmentBranch"
+                value={formData.departmentBranch}
+                onChange={handleChange}
+                placeholder="e.g., IT Department - Main Building"
+              />
+            </div>
+
+            <div className="col-md-6 mb-3">
+              <label htmlFor="status" className="form-label">
+                Status <span className="text-danger">*</span>
+              </label>
+              <select
+                className="form-select"
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                required
+              >
+                <option value="">-- Select Status --</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="MAINTENANCE">Under Maintenance</option>
+                <option value="RETIRED">Retired</option>
+              </select>
+            </div>
+
+            <div className="col-12 mb-3">
+              <label htmlFor="amcCmcDetails" className="form-label">
+                AMC/CMC Details
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="amcCmcDetails"
+                name="amcCmcDetails"
+                value={formData.amcCmcDetails}
+                onChange={handleChange}
+                placeholder="e.g., AMC valid till 2027 (Includes onsite support)"
+              />
+            </div>
+
+            <div className="col-12 mb-3">
+              <label htmlFor="remarksNotes" className="form-label">
+                Remarks/Notes
+              </label>
+              <textarea
+                className="form-control"
+                id="remarksNotes"
+                name="remarksNotes"
+                value={formData.remarksNotes}
+                onChange={handleChange}
+                rows="3"
+                placeholder="Enter any additional notes or remarks"
+              ></textarea>
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-center gap-2 mt-3">
+            <button
+              type="submit"
+              className="btn btn-success"
+              style={{ backgroundColor: "#01C0C8", border: "none" }}
+              disabled={addAssetStatus === "loading"}
+            >
+              {addAssetStatus === "loading" ? (
+                <>
+                  <span
+                    className="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-plus me-1"></i> Add Asset
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => navigate("/dashboard/asset-list")}
+              disabled={addAssetStatus === "loading"}
+            >
+              <i className="fa-solid fa-eye me-1"></i> View All Assets
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

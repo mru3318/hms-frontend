@@ -6,6 +6,7 @@ import employeeReducer from "../features/employeeSlice";
 import departmentReducer from "../features/departmentSlice";
 import assetsReducer from "../features/assetsSlice";
 import healthPackageReducer from "../features/healthPackageSlice";
+import birthAndDethReducer from "../features/birthAndDethSlice";
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     departments: departmentReducer,
     assets: assetsReducer,
     healthPackages: healthPackageReducer,
+    birthAndDeth: birthAndDethReducer,
   },
 });
 

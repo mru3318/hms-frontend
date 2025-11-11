@@ -46,7 +46,39 @@ export const registerEmployee = createAsyncThunk(
 
       // Fallback to generic message
       return rejectWithValue(error.message || "Something went wrong");
+    }
+  }
+);
 
+// Fetch employees by roleId
+export const fetchEmployeesByRole = createAsyncThunk(
+  "employee/fetchByRole",
+  async (roleId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users/role/${roleId}`);
+      // ensure we return an array; backend may wrap the data
+      const data = response.data;
+      const list = Array.isArray(data)
+        ? data
+        : data?.dataList ?? data?.data ?? data?.users ?? [];
+      return { roleId, list };
+    } catch (error) {
+      console.error("fetchEmployeesByRole error:", error);
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+// Update employee status
+export const updateEmployeeStatus = createAsyncThunk(
+  "employee/updateStatus",
+  async ({ userId, status }, { rejectWithValue }) => {
+    try {
+      await axios.put(`${API_BASE_URL}/users/${userId}/status`, { status });
+      return { userId, status };
+    } catch (error) {
+      console.error("updateEmployeeStatus error:", error);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -59,6 +91,9 @@ const employeeSlice = createSlice({
     success: false,
     error: null,
     message: null,
+    // store employees by roleId to avoid re-fetching when switching tabs
+    employeesByRole: {},
+    fetchingRole: null,
   },
   reducers: {
     resetEmployeeState: (state) => {
@@ -87,6 +122,43 @@ const employeeSlice = createSlice({
         state.success = false;
         state.error = action.payload;
         state.message = null;
+      });
+    // fetch employees by role
+    builder
+      .addCase(fetchEmployeesByRole.pending, (state, action) => {
+        state.loading = true;
+        state.fetchingRole = action.meta.arg;
+        state.error = null;
+      })
+      .addCase(fetchEmployeesByRole.fulfilled, (state, action) => {
+        state.loading = false;
+        state.fetchingRole = null;
+        const { roleId, list } = action.payload;
+        state.employeesByRole[roleId] = list;
+      })
+      .addCase(fetchEmployeesByRole.rejected, (state, action) => {
+        state.loading = false;
+        state.fetchingRole = null;
+        state.error = action.payload;
+      })
+      // update status
+      .addCase(updateEmployeeStatus.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateEmployeeStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        const { userId, status } = action.payload;
+        // find and update user across stored role lists
+        Object.keys(state.employeesByRole).forEach((roleKey) => {
+          state.employeesByRole[roleKey] = state.employeesByRole[roleKey].map(
+            (emp) => (emp.userId === userId ? { ...emp, status } : emp)
+          );
+        });
+      })
+      .addCase(updateEmployeeStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });

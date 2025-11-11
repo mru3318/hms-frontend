@@ -1,6 +1,6 @@
 const AddBloodStock = () => {
   return (
-    <div className="card shadow">
+    <div className="card full-width-card shadow">
       {/* Header */}
       <div className="card-header d-flex align-items-center">
         <h3 className="mb-0 text-white d-flex align-items-center">

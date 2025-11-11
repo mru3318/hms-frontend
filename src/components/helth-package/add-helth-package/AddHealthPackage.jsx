@@ -95,7 +95,7 @@ const AddHealthPackage = () => {
   };
 
   return (
-    <div className="container my-4 p-0 m-0">
+    <div className="container my-4 p-0 m-0 ">
       {/* Header */}
       <div className="card-border">
         <div className="card-header d-flex justify-content-center align-items-center">
@@ -112,7 +112,7 @@ const AddHealthPackage = () => {
       </div>
 
       {/* Form */}
-      <form className="container-fluid my-4" onSubmit={handleSubmit}>
+      <form className="mx-4 my-4" onSubmit={handleSubmit}>
         <div className="row mb-4">
           <div className="form-group col-md-6">
             <label htmlFor="packageCode">Health Package Code</label>

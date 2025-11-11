@@ -231,7 +231,6 @@ const EmployeeRegistration = () => {
 
         // let requestData;
 
-
         //  4. Always send as FormData (even without files)
         const formData = new FormData();
         formData.append(
@@ -247,8 +246,6 @@ const EmployeeRegistration = () => {
         }
 
         const requestData = formData;
-
-
 
         // if (hasFiles) {
         //   // Build FormData for files + payload JSON
@@ -279,8 +276,6 @@ const EmployeeRegistration = () => {
         //   );
         // }
 
-
-
         const resultAction = await dispatch(registerEmployee(requestData));
         console.log("🔍 Full resultAction:", resultAction);
         console.log("❌ Error payload:", resultAction.payload);
@@ -297,9 +292,11 @@ const EmployeeRegistration = () => {
           } else if (Array.isArray(resultAction.payload)) {
             errMsg = resultAction.payload;
           } else {
-            errMsg = resultAction.payload || resultAction.error?.message || "Registration failed";
+            errMsg =
+              resultAction.payload ||
+              resultAction.error?.message ||
+              "Registration failed";
           }
-
 
           if (Array.isArray(errMsg)) {
             const fieldErrors = {};
@@ -313,7 +310,6 @@ const EmployeeRegistration = () => {
                   ? err.field.split(".").pop()
                   : err.field;
                 fieldErrors[normalizedField] = err.defaultMessage;
-
               }
             });
 
@@ -348,11 +344,7 @@ const EmployeeRegistration = () => {
 
           setSubmitting(false);
           return;
-
-
         }
-
-
 
         if (status === "fulfilled") {
           const serverMessage =
@@ -530,8 +522,8 @@ const EmployeeRegistration = () => {
                     {departmentsStatus === "loading"
                       ? "Loading Departments..."
                       : departmentsStatus === "failed"
-                        ? "Error loading departments"
-                        : "Select Department"}
+                      ? "Error loading departments"
+                      : "Select Department"}
                   </option>
                   {departmentsStatus === "succeeded" &&
                     departments?.map((dept) => (
@@ -562,11 +554,12 @@ const EmployeeRegistration = () => {
                   value={formik.values.qualifications}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  className={`form-control ${formik.touched.qualifications &&
+                  className={`form-control ${
+                    formik.touched.qualifications &&
                     formik.errors.qualifications
-                    ? "is-invalid"
-                    : ""
-                    }`}
+                      ? "is-invalid"
+                      : ""
+                  }`}
                 />
                 <div className="invalid-feedback">
                   {formik.errors.qualifications}
@@ -628,11 +621,12 @@ const EmployeeRegistration = () => {
                   value={formik.values.qualifications}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  className={`form-control ${formik.touched.qualifications &&
+                  className={`form-control ${
+                    formik.touched.qualifications &&
                     formik.errors.qualifications
-                    ? "is-invalid"
-                    : ""
-                    }`}
+                      ? "is-invalid"
+                      : ""
+                  }`}
                 />
                 <div className="invalid-feedback">
                   {formik.errors.qualifications}
@@ -688,11 +682,12 @@ const EmployeeRegistration = () => {
                   value={formik.values.qualifications}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  className={`form-control ${formik.touched.qualifications &&
+                  className={`form-control ${
+                    formik.touched.qualifications &&
                     formik.errors.qualifications
-                    ? "is-invalid"
-                    : ""
-                    }`}
+                      ? "is-invalid"
+                      : ""
+                  }`}
                 />
                 <div className="invalid-feedback">
                   {formik.errors.qualifications}
@@ -708,7 +703,7 @@ const EmployeeRegistration = () => {
 
   // JSX — ensure every input uses value & onChange from formik, and file inputs call handleFileChange
   return (
-    <div className="card shadow border-0 w-100">
+    <div className="card full-width-card shadow border-0 w-100">
       <div
         className="card-header text-white text-center py-3"
         style={{ backgroundColor: "#01C0C8" }}
@@ -735,23 +730,38 @@ const EmployeeRegistration = () => {
           </div>
         )}
         {typeof error === "string" && (
-          <div className="alert alert-danger alert-dismissible fade show" role="alert">
+          <div
+            className="alert alert-danger alert-dismissible fade show"
+            role="alert"
+          >
             {error}
-            <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button
+              type="button"
+              className="btn-close"
+              data-bs-dismiss="alert"
+              aria-label="Close"
+            ></button>
           </div>
         )}
 
         {Array.isArray(error) && (
-          <div className="alert alert-danger alert-dismissible fade show" role="alert">
+          <div
+            className="alert alert-danger alert-dismissible fade show"
+            role="alert"
+          >
             <ul className="mb-0">
               {error.map((err, idx) => (
                 <li key={idx}>{err.defaultMessage}</li>
               ))}
             </ul>
-            <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button
+              type="button"
+              className="btn-close"
+              data-bs-dismiss="alert"
+              aria-label="Close"
+            ></button>
           </div>
         )}
-
 
         {/* Use formik.handleSubmit on form */}
         <form
@@ -773,10 +783,11 @@ const EmployeeRegistration = () => {
                 value={formik.values.firstName}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${formik.touched.firstName && formik.errors.firstName
-                  ? "is-invalid"
-                  : ""
-                  }`}
+                className={`form-control ${
+                  formik.touched.firstName && formik.errors.firstName
+                    ? "is-invalid"
+                    : ""
+                }`}
               />
               <div className="invalid-feedback">{formik.errors.firstName}</div>
             </div>
@@ -791,10 +802,11 @@ const EmployeeRegistration = () => {
                 value={formik.values.lastName}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${formik.touched.lastName && formik.errors.lastName
-                  ? "is-invalid"
-                  : ""
-                  }`}
+                className={`form-control ${
+                  formik.touched.lastName && formik.errors.lastName
+                    ? "is-invalid"
+                    : ""
+                }`}
               />
               <div className="invalid-feedback">{formik.errors.lastName}</div>
             </div>
@@ -812,10 +824,11 @@ const EmployeeRegistration = () => {
                 value={formik.values.mobileNumber}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${formik.touched.mobileNumber && formik.errors.mobileNumber
-                  ? "is-invalid"
-                  : ""
-                  }`}
+                className={`form-control ${
+                  formik.touched.mobileNumber && formik.errors.mobileNumber
+                    ? "is-invalid"
+                    : ""
+                }`}
               />
               <div className="invalid-feedback">
                 {formik.errors.mobileNumber}
@@ -832,10 +845,11 @@ const EmployeeRegistration = () => {
                 value={formik.values.email}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${formik.touched.email && formik.errors.email
-                  ? "is-invalid"
-                  : ""
-                  }`}
+                className={`form-control ${
+                  formik.touched.email && formik.errors.email
+                    ? "is-invalid"
+                    : ""
+                }`}
               />
               <div className="invalid-feedback">{formik.errors.email}</div>
             </div>
@@ -853,10 +867,11 @@ const EmployeeRegistration = () => {
                 value={formik.values.username}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${formik.touched.username && formik.errors.username
-                  ? "is-invalid"
-                  : ""
-                  }`}
+                className={`form-control ${
+                  formik.touched.username && formik.errors.username
+                    ? "is-invalid"
+                    : ""
+                }`}
               />
               <div className="invalid-feedback">{formik.errors.username}</div>
             </div>
@@ -874,10 +889,11 @@ const EmployeeRegistration = () => {
                 value={formik.values.password}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${formik.touched.password && formik.errors.password
-                  ? "is-invalid"
-                  : ""
-                  }`}
+                className={`form-control ${
+                  formik.touched.password && formik.errors.password
+                    ? "is-invalid"
+                    : ""
+                }`}
               />
               <div className="invalid-feedback">{formik.errors.password}</div>
             </div>
@@ -892,11 +908,12 @@ const EmployeeRegistration = () => {
                 value={formik.values.confirmPassword}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${formik.touched.confirmPassword &&
+                className={`form-control ${
+                  formik.touched.confirmPassword &&
                   formik.errors.confirmPassword
-                  ? "is-invalid"
-                  : ""
-                  }`}
+                    ? "is-invalid"
+                    : ""
+                }`}
               />
               <div className="invalid-feedback">
                 {formik.errors.confirmPassword}
@@ -935,10 +952,11 @@ const EmployeeRegistration = () => {
               </label>
               <select
                 name="gender"
-                className={`form-select ${formik.touched.gender && formik.errors.gender
-                  ? "is-invalid"
-                  : ""
-                  }`}
+                className={`form-select ${
+                  formik.touched.gender && formik.errors.gender
+                    ? "is-invalid"
+                    : ""
+                }`}
                 value={formik.values.gender}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -961,8 +979,9 @@ const EmployeeRegistration = () => {
                 value={formik.values.dob}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`form-control ${formik.touched.dob && formik.errors.dob ? "is-invalid" : ""
-                  }`}
+                className={`form-control ${
+                  formik.touched.dob && formik.errors.dob ? "is-invalid" : ""
+                }`}
               />
               <div className="invalid-feedback">{formik.errors.dob}</div>
             </div>
@@ -1023,10 +1042,11 @@ const EmployeeRegistration = () => {
                   type="text"
                   id="addressLine1"
                   name="addressLine1"
-                  className={`form-control ${formik.touched.addressLine1 && formik.errors.addressLine1
-                    ? "is-invalid"
-                    : ""
-                    }`}
+                  className={`form-control ${
+                    formik.touched.addressLine1 && formik.errors.addressLine1
+                      ? "is-invalid"
+                      : ""
+                  }`}
                   placeholder="Enter Address Line 1"
                   value={formik.values.addressLine1}
                   onChange={formik.handleChange}
@@ -1061,10 +1081,11 @@ const EmployeeRegistration = () => {
                 <select
                   id="state"
                   name="state"
-                  className={`form-select ${formik.touched.state && formik.errors.state
-                    ? "is-invalid"
-                    : ""
-                    }`}
+                  className={`form-select ${
+                    formik.touched.state && formik.errors.state
+                      ? "is-invalid"
+                      : ""
+                  }`}
                   onChange={handleStateChange}
                   onBlur={formik.handleBlur}
                   value={formik.values.state}
@@ -1114,10 +1135,11 @@ const EmployeeRegistration = () => {
                   type="text"
                   id="city"
                   name="city"
-                  className={`form-control ${formik.touched.city && formik.errors.city
-                    ? "is-invalid"
-                    : ""
-                    }`}
+                  className={`form-control ${
+                    formik.touched.city && formik.errors.city
+                      ? "is-invalid"
+                      : ""
+                  }`}
                   value={formik.values.city}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
@@ -1206,8 +1228,9 @@ const EmployeeRegistration = () => {
               <label className="form-label fw-semibold">Role</label>
               <select
                 name="role"
-                className={`form-select ${formik.touched.role && formik.errors.role ? "is-invalid" : ""
-                  }`}
+                className={`form-select ${
+                  formik.touched.role && formik.errors.role ? "is-invalid" : ""
+                }`}
                 {...formik.getFieldProps("role")}
               >
                 <option value="">Select Role</option>

@@ -1,7 +1,95 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Formik } from "formik";
+import * as Yup from "yup";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchMothers,
+  createBirthCertificate,
+  selectMothersStatus,
+  selectMothersError,
+  selectCreationStatus,
+} from "../../../features/birthAndDethSlice";
+import Swal from "sweetalert2";
 
 const BabyBirthCertificateForm = () => {
-  const [form, setForm] = useState({
+  const [motherSearch, setMotherSearch] = useState("");
+  const [filteredMothers, setFilteredMothers] = useState([]);
+  const [isMotherDropdownOpen, setIsMotherDropdownOpen] = useState(false);
+
+  const dispatch = useDispatch();
+  const mothers = useSelector((state) => state.birthAndDeth?.mothers || []);
+  const mothersStatus = useSelector(selectMothersStatus);
+  const mothersError = useSelector(selectMothersError);
+  const creationStatus = useSelector(selectCreationStatus);
+
+  useEffect(() => {
+    if (dispatch) {
+      dispatch(fetchMothers());
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (motherSearch) {
+      const lowercasedSearch = motherSearch.toLowerCase();
+      const filtered = mothers.filter(
+        (mother) =>
+          mother.name.toLowerCase().includes(lowercasedSearch) ||
+          (mother.hospital_patient_id &&
+            String(mother.hospital_patient_id)
+              .toLowerCase()
+              .includes(lowercasedSearch))
+      );
+      setFilteredMothers(filtered);
+      setIsMotherDropdownOpen(true);
+    } else {
+      setFilteredMothers([]);
+      setIsMotherDropdownOpen(false);
+    }
+  }, [motherSearch, mothers]);
+
+  const handleGenerate = async (values, { resetForm }) => {
+    const selectedMother = mothers.find((m) => m.name === values.mother);
+
+    const payload = {
+      gender: values.gender.toUpperCase(),
+      dateOfBirth: values.dob,
+      timeOfBirth: values.time,
+      birthWeight: parseFloat(values.weight) || null,
+      birthLength: parseFloat(values.height) || null,
+      headCircumference: null,
+      placeOfBirth: values.place || values.hospitalName,
+      attendingDoctor: values.doctor,
+      timeOfIssue: values.issueDate,
+      certificateNumber: values.certificateNo,
+      motherName: values.mother,
+      fatherName: values.father,
+      contactNumber: values.mobile,
+      email: "",
+      motherPatientId: selectedMother ? selectedMother.id : null,
+    };
+
+    try {
+      await dispatch(createBirthCertificate(payload)).unwrap();
+
+      Swal.fire({
+        icon: "success",
+        title: "Certificate Saved!",
+        text: "The birth certificate has been successfully saved.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      resetForm();
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Creation Failed",
+        text: error.message || "An unexpected error occurred.",
+      });
+    }
+  };
+
+  const initialValues = {
     hospitalName: "HarishChandra Hospital",
     certificateNo: "",
     childName: "",
@@ -15,341 +103,328 @@ const BabyBirthCertificateForm = () => {
     mother: "",
     address: "",
     doctor: "",
+    mobile: "",
     signatory: "",
     issueDate: "",
+  };
+
+  const validationSchema = Yup.object({
+    hospitalName: Yup.string().required("Hospital name is required"),
+    childName: Yup.string(),
+    dob: Yup.date()
+      .required("Date of birth is required")
+      .max(new Date(), "Date of birth cannot be in the future"),
+    gender: Yup.string().required("Gender is required"),
+    time: Yup.string()
+      .required("Time of birth is required")
+      .matches(/^([01]\d|2[0-3]):([0-5]\d)$/, "Time must be in HH:mm format"),
   });
 
-  const [showCertificate, setShowCertificate] = useState(false);
-
-  const handleChange = (e) => {
-    const { id, value } = e.target;
-    setForm({ ...form, [id]: value });
-  };
-
-  const handleGenerate = () => {
-    setShowCertificate(true);
-    setTimeout(() => {
-      window.print();
-      setShowCertificate(false);
-    }, 300);
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    return isNaN(date.getTime()) ? "" : date.toLocaleDateString();
-  };
-
   return (
-    <div className="container-fluid p-0">
-      <div className="card shadow-sm w-100 border-0">
-        {/* Header */}
-        {!showCertificate && (
-          <>
-            <div
-              className="card-header text-white text-center"
-              style={{ backgroundColor: "#01C0C8" }}
-            >
-              <h3 className="mb-0">
-                <i className="bi bi-heart-pulse me-2"></i>
-                Baby Birth Certificate Form
-              </h3>
-            </div>
+    <div className="card full-width-card shadow-sm w-100 border-0 ">
+      <div
+        className="card-header text-white text-center"
+        style={{ backgroundColor: "#01C0C8" }}
+      >
+        <h3 className="mb-0">
+          <i className="bi bi-heart-pulse me-2"></i>
+          Baby Birth Certificate Form
+        </h3>
+      </div>
 
-            {/* Form */}
-            <div className="card-body">
-              <form id="birthForm" autoComplete="off">
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Hospital Name *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="hospitalName"
-                      value={form.hospitalName}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Certificate Number *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="certificateNo"
-                      value={form.certificateNo}
-                      onChange={handleChange}
-                      placeholder="Enter certificate number"
-                    />
-                  </div>
+      <div className="card-body">
+        <Formik
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          onSubmit={(values, { resetForm }) =>
+            handleGenerate(values, { resetForm })
+          }
+        >
+          {({
+            values,
+            handleChange,
+            handleSubmit,
+            errors,
+            touched,
+            setFieldValue,
+          }) => (
+            <form id="birthForm" autoComplete="off" onSubmit={handleSubmit}>
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label className="form-label">
+                    Hospital Name <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="hospitalName"
+                    value={values.hospitalName}
+                    onChange={handleChange}
+                  />
+                  {touched.hospitalName && errors.hospitalName && (
+                    <div className="text-danger small">
+                      {errors.hospitalName}
+                    </div>
+                  )}
                 </div>
-
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Child’s Full Name *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="childName"
-                      value={form.childName}
-                      onChange={handleChange}
-                      placeholder="Enter child’s full name"
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="form-label">Date of Birth *</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      id="dob"
-                      value={form.dob}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="form-label">Time of Birth *</label>
-                    <input
-                      type="time"
-                      className="form-control"
-                      id="time"
-                      value={form.time}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                <div className="row mb-3">
-                  <div className="col-md-4">
-                    <label className="form-label">Weight (kg)</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      id="weight"
-                      value={form.weight}
-                      onChange={handleChange}
-                      placeholder="e.g., 3.2"
-                      step="0.01"
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Height (inch)</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      id="height"
-                      value={form.height}
-                      onChange={handleChange}
-                      placeholder="e.g., 20"
-                      step="0.1"
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Gender *</label>
-                    <select
-                      className="form-select"
-                      id="gender"
-                      value={form.gender}
-                      onChange={handleChange}
-                    >
-                      <option value="">Select gender</option>
-                      <option>Male</option>
-                      <option>Female</option>
-                      <option>Other</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label className="form-label">
-                      Place of Birth (Hospital / Ward)
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="place"
-                      value={form.place}
-                      onChange={handleChange}
-                      placeholder="Enter place of birth"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Father’s Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="father"
-                      value={form.father}
-                      onChange={handleChange}
-                      placeholder="Enter father's name"
-                    />
-                  </div>
-                </div>
-
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Mother’s Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="mother"
-                      value={form.mother}
-                      onChange={handleChange}
-                      placeholder="Enter mother's name"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Address</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="address"
-                      value={form.address}
-                      onChange={handleChange}
-                      placeholder="Enter address"
-                    />
-                  </div>
-                </div>
-
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label className="form-label">
-                      Attending Doctor / Midwife
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="doctor"
-                      value={form.doctor}
-                      onChange={handleChange}
-                      placeholder="Enter doctor’s name"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Authorized Signatory</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="signatory"
-                      value={form.signatory}
-                      onChange={handleChange}
-                      placeholder="Enter signatory name"
-                    />
-                  </div>
-                </div>
-
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Issue Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      id="issueDate"
-                      value={form.issueDate}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                <div className="text-center mt-4">
-                  <button
-                    type="button"
-                    id="printButton"
-                    className="btn text-white px-4"
-                    style={{
-                      backgroundColor: "#01C0C8",
-                      borderColor: "#01C0C8",
+                <div className="col-md-6 position-relative">
+                  <label className="form-label">Mother’s Name</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="mother"
+                    name="mother"
+                    value={values.mother}
+                    onChange={(e) => {
+                      handleChange(e);
+                      setMotherSearch(e.target.value);
                     }}
-                    onClick={handleGenerate}
+                    onFocus={() =>
+                      motherSearch && setIsMotherDropdownOpen(true)
+                    }
+                    placeholder="Search mother's name..."
+                    autoComplete="off"
+                  />
+                  {mothersStatus === "loading" && (
+                    <div className="form-text">Loading mothers...</div>
+                  )}
+                  {mothersStatus === "failed" && (
+                    <div className="text-danger small">
+                      Error: {mothersError}
+                    </div>
+                  )}
+                  {isMotherDropdownOpen && mothersStatus === "succeeded" && (
+                    <div
+                      className="list-group position-absolute w-100"
+                      style={{ zIndex: 1000 }}
+                      onMouseLeave={() => setIsMotherDropdownOpen(false)}
+                    >
+                      {filteredMothers.length > 0 ? (
+                        filteredMothers.map((mother) => (
+                          <button
+                            type="button"
+                            key={mother.id}
+                            className="list-group-item list-group-item-action"
+                            onClick={() => {
+                              setFieldValue("mother", mother.name);
+                              setFieldValue(
+                                "mobile",
+                                mother.contactNumber || ""
+                              );
+                              setFieldValue("address", mother.address || "");
+                              setFieldValue(
+                                "doctor",
+                                mother.attendingDoctor || ""
+                              );
+                              setMotherSearch("");
+                              setIsMotherDropdownOpen(false);
+                            }}
+                          >
+                            {mother.name} ({mother.hospital_patient_id})
+                          </button>
+                        ))
+                      ) : (
+                        <span className="list-group-item disabled">
+                          No match found
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label className="form-label">Issue Date</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    id="issueDate"
+                    value={values.issueDate}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">
+                    Date of Birth <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    id="dob"
+                    value={values.dob}
+                    onChange={handleChange}
+                  />
+                  {touched.dob && errors.dob && (
+                    <div className="text-danger small">{errors.dob}</div>
+                  )}
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">
+                    Time of Birth <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    className="form-control"
+                    id="time"
+                    name="time"
+                    value={values.time}
+                    onChange={handleChange}
+                  />
+                  {touched.time && errors.time && (
+                    <div className="text-danger small">{errors.time}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="row mb-3">
+                <div className="col-md-4">
+                  <label className="form-label">Weight (kg)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="weight"
+                    value={values.weight}
+                    onChange={handleChange}
+                    placeholder="e.g., 3.2"
+                    step="0.01"
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label">Height (inch)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="height"
+                    value={values.height}
+                    onChange={handleChange}
+                    placeholder="e.g., 20"
+                    step="0.1"
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label">
+                    Gender <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    className="form-select"
+                    id="gender"
+                    value={values.gender}
+                    onChange={handleChange}
                   >
-                    <i className="bi bi-printer-fill me-1"></i> Generate & Print
-                    Certificate
-                  </button>
-                </div>
-              </form>
-            </div>
-          </>
-        )}
-
-        {/* Certificate Preview / Print Section */}
-        {showCertificate && (
-          <div
-            id="printArea"
-            className="p-5 border border-4 mx-auto"
-            style={{
-              borderColor: "#01C0C8",
-              maxWidth: "900px",
-              backgroundColor: "#fff",
-            }}
-          >
-            <div className="text-center mb-4">
-              <h2
-                id="hospitalHeader"
-                className="fw-bold"
-                style={{ color: "#01C0C8" }}
-              >
-                {form.hospitalName}
-              </h2>
-              <small id="certNo">{form.certificateNo}</small>
-            </div>
-
-            <h4 className="text-center fw-bold text-decoration-underline mb-4">
-              BABY BIRTH CERTIFICATE
-            </h4>
-
-            <div className="mb-3">
-              <p>
-                This is to certify that{" "}
-                <span className="fw-bold border-bottom">{form.childName}</span>,
-                weighing{" "}
-                <span className="fw-bold border-bottom">{form.weight}</span> kg
-                and <span className="fw-bold border-bottom">{form.height}</span>{" "}
-                inches tall, was born on{" "}
-                <span className="fw-bold border-bottom">
-                  {formatDate(form.dob)} {form.time}
-                </span>{" "}
-                at <span className="fw-bold border-bottom">{form.place}</span>.
-              </p>
-              <p>
-                Gender:{" "}
-                <span className="fw-bold border-bottom">{form.gender}</span>
-              </p>
-              <p>
-                Father’s Name:{" "}
-                <span className="fw-bold border-bottom">{form.father}</span>
-              </p>
-              <p>
-                Mother’s Name:{" "}
-                <span className="fw-bold border-bottom">{form.mother}</span>
-              </p>
-              <p>
-                Address:{" "}
-                <span className="fw-bold border-bottom">{form.address}</span>
-              </p>
-              <p>
-                Attending Doctor / Midwife:{" "}
-                <span className="fw-bold border-bottom">{form.doctor}</span>
-              </p>
-            </div>
-
-            <div className="d-flex justify-content-between mt-5">
-              <div className="text-center">
-                <div className="border-top pt-2">
-                  {form.doctor || "Attending Doctor / Midwife"}
+                    <option value="">Select gender</option>
+                    <option>Male</option>
+                    <option>Female</option>
+                    <option>Other</option>
+                  </select>
+                  {touched.gender && errors.gender && (
+                    <div className="text-danger small">{errors.gender}</div>
+                  )}
                 </div>
               </div>
-              <div className="text-center">
-                <div className="border-top pt-2">
-                  {form.signatory || "Authorized Signatory"}
+
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label className="form-label">
+                    Place of Birth (Hospital / Ward)
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="place"
+                    value={values.place}
+                    onChange={handleChange}
+                    placeholder="Enter place of birth"
+                  />
                 </div>
-                <p className="mt-2">
-                  {form.issueDate
-                    ? `Issue Date: ${formatDate(form.issueDate)}`
-                    : ""}
-                </p>
+                <div className="col-md-6">
+                  <label className="form-label">Father’s Name</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="father"
+                    value={values.father}
+                    onChange={handleChange}
+                    placeholder="Enter father's name"
+                  />
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label className="form-label">Mobile Number</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="mobile"
+                    value={values.mobile}
+                    onChange={handleChange}
+                    placeholder="Enter mobile number"
+                    maxLength={10}
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                    }}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Address</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="address"
+                    value={values.address}
+                    onChange={handleChange}
+                    placeholder="Enter address"
+                  />
+                </div>
+              </div>
+
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label className="form-label">
+                    Attending Doctor / Midwife
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="doctor"
+                    value={values.doctor}
+                    onChange={handleChange}
+                    placeholder="Enter doctor’s name"
+                  />
+                </div>
+              </div>
+
+              <div className="text-center mt-4">
+                <button
+                  type="submit"
+                  className="btn text-white px-4"
+                  style={{
+                    backgroundColor: "#01C0C8",
+                    borderColor: "#01C0C8",
+                  }}
+                  disabled={creationStatus === "loading"}
+                >
+                  {creationStatus === "loading" ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm me-2"
+                        role="status"
+                        aria-hidden="true"
+                      ></span>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-save-fill me-1"></i>
+                      Save Certificate
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+        </Formik>
       </div>
     </div>
   );

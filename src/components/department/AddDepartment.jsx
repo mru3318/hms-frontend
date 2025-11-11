@@ -101,7 +101,7 @@ const AddDepartment = () => {
 
   return (
     <div
-      className="card mx-auto shadow"
+      className="card full-width-card mx-auto shadow"
       style={{
         borderRadius: "0.75rem",
         overflow: "hidden",

@@ -1,24 +1,21 @@
-import { NavLink } from "react-router-dom";
+import "./ManageDonor.css";
 
 const ManageDonor = () => {
   return (
-    <div className="container-fluid mt-4">
-      {/* Header Section */}
-      <div className="header-bar form-header mb-2 d-flex align-items-center justify-content-center position-relative">
+    <>
+      {/* Header Bar */}
+      <div className="header-bar form-header  d-flex align-items-center justify-content-center position-relative">
         <div className="d-flex align-items-center">
           <i className="fa-solid fa-droplet fa-lg text-white me-2"></i>
-          <h4 className="mb-0 font-size">Donor List</h4>
+          <h4>Donor List</h4>
         </div>
 
-        <NavLink
-          className="btn btn-success btn-sm position-absolute end-0 me-3"
-          to="/dashboard/add-donor"
-        >
+        <button className="btn btn-success btn-sm position-absolute end-0 me-3">
           <i className="fas fa-plus me-1"></i> Add Donor
-        </NavLink>
+        </button>
       </div>
 
-      {/* Donor Table */}
+      {/* Table Container */}
       <div className="table-container p-2">
         <div className="table-responsive">
           <table className="table table-bordered table-striped align-middle mb-0">
@@ -55,12 +52,15 @@ const ManageDonor = () => {
                     className="btn btn-primary btn-sm action-btn me-2"
                     title="Edit"
                   >
-                    <span className="d-sm-inline ms-1">
-                      <i className="fa-solid fa-pen-to-square me-1"></i>
-                    </span>
+                    <i className="fa-solid fa-pen-to-square me-1"></i>
+                    {/* <span className="d-sm-inline ms-1">Edit</span> */}
                   </button>
-                  <button className="btn btn-danger">
-                    <i className="fa-solid fa-trash-can me-1"></i>
+                  <button
+                    className="btn btn-danger btn-sm action-btn"
+                    title="Edit"
+                  >
+                    <i className="fa-solid fa-trash me-1"></i>
+                    {/* <span className="d-sm-inline ms-1">Delete</span> */}
                   </button>
                 </td>
               </tr>
@@ -82,12 +82,15 @@ const ManageDonor = () => {
                     className="btn btn-primary btn-sm action-btn me-2"
                     title="Edit"
                   >
-                    <span className="d-sm-inline ms-1">
-                      <i className="fa-solid fa-pen-to-square me-1"></i>
-                    </span>
+                    <i className="fa-solid fa-pen-to-square me-1"></i>
+                    {/* <span className="d-sm-inline ms-1">Edit</span> */}
                   </button>
-                  <button className="btn btn-danger">
-                    <i className="fa-solid fa-trash-can me-1"></i>
+                  <button
+                    className="btn btn-danger btn-sm action-btn"
+                    title="Edit"
+                  >
+                    <i className="fa-solid fa-trash me-1"></i>
+                    {/* <span className="d-sm-inline ms-1">Delete</span> */}
                   </button>
                 </td>
               </tr>
@@ -106,16 +109,18 @@ const ManageDonor = () => {
                 <td className="d-none d-sm-table-cell">2025-01-15</td>
                 <td>
                   <button
-                    className="btn btn-secondary btn-sm action-btn me-2"
-                    disabled
-                    title="No Edit"
+                    className="btn btn-primary btn-sm action-btn me-2"
+                    title="Edit"
                   >
-                    <span className="d-sm-inline ms-1">
-                      <i className="fa-solid fa-pen-to-square me-1"></i>
-                    </span>
+                    <i className="fa-solid fa-pen-to-square me-1"></i>
+                    {/* <span className="d-sm-inline ms-1">Edit</span> */}
                   </button>
-                  <button className="btn btn-danger">
-                    <i className="fa-solid fa-trash-can me-1"></i>
+                  <button
+                    className="btn btn-danger btn-sm action-btn"
+                    title="Edit"
+                  >
+                    <i className="fa-solid fa-trash me-1"></i>
+                    {/* <span className="d-sm-inline ms-1">Delete</span> */}
                   </button>
                 </td>
               </tr>
@@ -123,7 +128,7 @@ const ManageDonor = () => {
           </table>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

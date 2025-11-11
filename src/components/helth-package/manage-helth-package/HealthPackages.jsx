@@ -92,7 +92,7 @@ const HealthPackages = () => {
   const packagesList = Array.isArray(healthPackages) ? healthPackages : [];
 
   return (
-    <div className="container-fluid my-4 p-0 m-0">
+    <div className="container-fluid p-0 m-0">
       {/* Header */}
       <div className="card-border w-100">
         <div className="card-header d-flex justify-content-center align-items-center px-0">
@@ -109,9 +109,9 @@ const HealthPackages = () => {
       </div>
 
       {/* Packages Grid */}
-      <div className="container-fluid">
+      <div className="container-fluid px-0">
         {loading ? (
-          <div className="text-center my-5">
+          <div className="text-center">
             <div className="spinner-border text-primary" role="status">
               <span className="visually-hidden">Loading...</span>
             </div>
@@ -128,10 +128,10 @@ const HealthPackages = () => {
             No health packages available.
           </div>
         ) : (
-          <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 my-3">
+          <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 m-2">
             {packagesList.map((pkg, index) => (
               <div className="col" key={pkg.id}>
-                <div className="card h-100 shadow-sm">
+                <div className="card  shadow-sm">
                   <div className="card-body">
                     <div className="card-title d-flex justify-content-between align-items-center">
                       <span className="name fw-semibold">{pkg.name}</span>

@@ -153,7 +153,7 @@ const Layout = () => {
         </div>
       </nav>
       {/* partial */}
-      <div className="container-fluid page-body-wrapper">
+      <div className="container-fluid page-body-wrapper px-0 pb-0">
         {/* partial:partials/_sidebar.html */}
         <nav className="sidebar sidebar-offcanvas" id="sidebar">
           <ul className="nav">
