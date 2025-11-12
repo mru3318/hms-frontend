@@ -250,6 +250,28 @@ const ManageBirthCertificates = () => {
     }, 500);
   };
 
+  // Helper to resolve address from various possible backend field names
+  const resolveAddress = (item) => {
+    if (!item) return "—";
+    // try common address fields in order of likelihood
+    const candidates = [
+      item.address,
+      item.presentAddress,
+      item.permanentAddress,
+      item.patientAddress,
+      item.residence,
+      item.homeAddress,
+      item.addressLine1,
+      item.addressLine2,
+      item.city,
+      item.place,
+    ];
+    const found = candidates.find(
+      (c) => c !== undefined && c !== null && String(c).trim() !== ""
+    );
+    return found || "—";
+  };
+
   return (
     <div className="container my-4 p-0 m-0">
       {/* Header */}
@@ -421,9 +443,7 @@ const ManageBirthCertificates = () => {
                     <strong>Contact Number:</strong>{" "}
                     {selected.contactNumber || selected.mobileNumber || "N/A"}
                   </p>
-                  <p>
-                    <strong>Email:</strong> {selected.email || "N/A"}
-                  </p>
+                  {/* Email removed from view per requirement */}
                 </div>
               )}
             </div>
@@ -637,7 +657,7 @@ const ManageBirthCertificates = () => {
                     lineHeight: "1.6",
                   }}
                 >
-                  <strong>Address:</strong> {selected.address || "—"}
+                  <strong>Address:</strong> {resolveAddress(selected)}
                 </p>
               </div>
             </div>

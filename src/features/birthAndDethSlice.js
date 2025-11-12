@@ -114,6 +114,31 @@ export const createBirthCertificate = createAsyncThunk(
   }
 );
 
+// Update Birth Certificate
+export const updateBirthCertificate = createAsyncThunk(
+  "birthAndDeth/updateBirthCertificate",
+  async ({ id, certificateData }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/birth-report/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(certificateData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        return rejectWithValue(errorData || "Failed to update certificate");
+      }
+
+      return await response.json();
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
 // Create Death Certificate
 export const createDeathCertificate = createAsyncThunk(
   "birthAndDeth/createDeathCertificate",
@@ -179,6 +204,8 @@ const birthAndDethSlice = createSlice({
     error: null, // for fetchMothers
     creationStatus: "idle", // for createBirthCertificate
     creationError: null, // for createBirthCertificate
+    updateStatus: "idle", // for updateBirthCertificate
+    updateError: null, // for updateBirthCertificate
     deathCreationStatus: "idle",
     deathCreationError: null,
     searchStatus: "idle",
@@ -212,6 +239,28 @@ const birthAndDethSlice = createSlice({
       .addCase(createBirthCertificate.rejected, (state, action) => {
         state.creationStatus = "failed";
         state.creationError = action.payload || action.error.message;
+      })
+      // Reducers for updateBirthCertificate
+      .addCase(updateBirthCertificate.pending, (state) => {
+        state.updateStatus = "loading";
+        state.updateError = null;
+      })
+      .addCase(updateBirthCertificate.fulfilled, (state, action) => {
+        state.updateStatus = "succeeded";
+        // Update the birth report in the birthReports array if it exists
+        const updatedReport = action.payload;
+        if (updatedReport && updatedReport.id) {
+          const index = state.birthReports.findIndex(
+            (report) => report.id === updatedReport.id
+          );
+          if (index !== -1) {
+            state.birthReports[index] = updatedReport;
+          }
+        }
+      })
+      .addCase(updateBirthCertificate.rejected, (state, action) => {
+        state.updateStatus = "failed";
+        state.updateError = action.payload || action.error.message;
       });
 
     // Reducers for createDeathCertificate
@@ -268,6 +317,8 @@ export const selectMothersError = (state) => state.birthAndDeth?.error;
 export const selectCreationStatus = (state) =>
   state.birthAndDeth?.creationStatus;
 export const selectCreationError = (state) => state.birthAndDeth?.creationError;
+export const selectUpdateStatus = (state) => state.birthAndDeth?.updateStatus;
+export const selectUpdateError = (state) => state.birthAndDeth?.updateError;
 export const selectDeathCreationStatus = (state) =>
   state.birthAndDeth?.deathCreationStatus;
 export const selectDeathCreationError = (state) =>

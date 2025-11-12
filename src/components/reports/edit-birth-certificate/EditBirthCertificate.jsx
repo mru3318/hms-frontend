@@ -1,58 +1,32 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   createBirthCertificate,
+  updateBirthCertificate,
+  fetchBirthReports,
   selectCreationStatus,
+  selectUpdateStatus,
+  selectUpdateError,
+  selectBirthReports,
+  selectBirthReportsStatus,
 } from "../../../features/birthAndDethSlice";
 import Swal from "sweetalert2";
 
 const EditBirthCertificate = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { id } = useParams();
+
   const creationStatus = useSelector(selectCreationStatus);
+  const updateStatus = useSelector(selectUpdateStatus);
+  const updateError = useSelector(selectUpdateError);
+  const birthReports = useSelector(selectBirthReports);
+  const birthReportsStatus = useSelector(selectBirthReportsStatus);
 
-  const handleGenerate = async (values, { resetForm }) => {
-    const payload = {
-      gender: values.gender.toUpperCase(),
-      dateOfBirth: values.dob,
-      timeOfBirth: values.time,
-      birthWeight: parseFloat(values.weight) || null,
-      birthLength: parseFloat(values.height) || null,
-      headCircumference: null,
-      placeOfBirth: values.place || values.hospitalName,
-      attendingDoctor: values.doctor,
-      timeOfIssue: values.issueDate,
-      certificateNumber: values.certificateNo,
-      motherName: values.mother,
-      fatherName: values.father,
-      contactNumber: values.mobile,
-      email: "",
-      motherPatientId: null,
-    };
-
-    try {
-      await dispatch(createBirthCertificate(payload)).unwrap();
-
-      Swal.fire({
-        icon: "success",
-        title: "Certificate Saved!",
-        text: "The birth certificate has been successfully saved.",
-        timer: 2000,
-        showConfirmButton: false,
-      });
-
-      resetForm();
-    } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Creation Failed",
-        text: error.message || "An unexpected error occurred.",
-      });
-    }
-  };
-
-  const initialValues = {
+  const [initialValues, setInitialValues] = useState({
     hospitalName: "HarishChandra Hospital",
     certificateNo: "",
     childName: "",
@@ -64,11 +38,180 @@ const EditBirthCertificate = () => {
     place: "",
     father: "",
     mother: "",
+    motherPatientId: "",
     address: "",
     doctor: "",
     mobile: "",
     signatory: "",
     issueDate: "",
+    email: "",
+    headCircumference: "",
+  });
+
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  useEffect(() => {
+    console.log("URL ID parameter:", id);
+    if (id) {
+      setIsEditMode(true);
+      // Fetch birth reports if not already loaded
+      if (birthReports.length === 0 && birthReportsStatus !== "loading") {
+        dispatch(fetchBirthReports());
+      }
+    }
+  }, [id, dispatch, birthReports.length, birthReportsStatus]);
+
+  useEffect(() => {
+    if (isEditMode && id && birthReports.length > 0) {
+      const certificate = birthReports.find(
+        (cert) => cert.id === parseInt(id) || cert.certificateNumber === id
+      );
+
+      if (certificate) {
+        setInitialValues({
+          hospitalName: certificate.placeOfBirth || "HarishChandra Hospital",
+          certificateNo: certificate.certificateNumber || "",
+          childName: certificate.childName || "",
+          dob: certificate.dateOfBirth || "",
+          time: certificate.timeOfBirth || "",
+          weight: certificate.birthWeight || "",
+          height: certificate.birthLength || "",
+          gender: certificate.gender || "",
+          place: certificate.placeOfBirth || "",
+          father: certificate.fatherName || "",
+          mother: certificate.motherName || "",
+          motherPatientId: certificate.motherPatientId
+            ? String(certificate.motherPatientId)
+            : "",
+          address: certificate.address || "",
+          doctor: certificate.attendingDoctor || "",
+          mobile: certificate.contactNumber || "",
+          signatory: "",
+          issueDate: certificate.timeOfIssue || "",
+          email: certificate.email || "",
+          headCircumference: certificate.headCircumference || "",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Certificate Not Found",
+          text: "The birth certificate you're trying to edit could not be found.",
+        });
+        navigate("/dashboard/manage-birth-certificates");
+      }
+    }
+  }, [isEditMode, id, birthReports, navigate]);
+
+  const handleSubmit = async (values, { resetForm }) => {
+    const payload = {
+      gender: values.gender.toUpperCase(),
+      dateOfBirth: values.dob,
+      timeOfBirth: values.time,
+      birthWeight: parseFloat(values.weight) || null,
+      birthLength: parseFloat(values.height) || null,
+      headCircumference: parseFloat(values.headCircumference) || null,
+      placeOfBirth: values.place || values.hospitalName,
+      attendingDoctor: values.doctor,
+      timeOfIssue: values.issueDate,
+      certificateNumber: values.certificateNo,
+      motherName: values.mother,
+      fatherName: values.father,
+      contactNumber: values.mobile,
+      email: values.email,
+      address: values.address,
+      motherPatientId: values.motherPatientId
+        ? Number(values.motherPatientId)
+        : null,
+    };
+
+    try {
+      if (isEditMode) {
+        if (!id) {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Certificate ID is required for editing.",
+          });
+          return;
+        }
+        // Ensure id is numeric when sending to backend and include it in payload
+        const numericId = Number(id);
+        if (isNaN(numericId)) {
+          Swal.fire({
+            icon: "error",
+            title: "Invalid ID",
+            text: "Certificate ID is invalid.",
+          });
+          return;
+        }
+
+        // include id in the request body as some backends expect it in the payload as well
+        const payloadWithId = { ...payload, id: numericId };
+        console.log(
+          "Updating certificate, id:",
+          numericId,
+          "payload:",
+          payloadWithId
+        );
+
+        await dispatch(
+          updateBirthCertificate({
+            id: numericId,
+            certificateData: payloadWithId,
+          })
+        ).unwrap();
+
+        Swal.fire({
+          icon: "success",
+          title: "Certificate Updated!",
+          text: "The birth certificate has been successfully updated.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        // Navigate back to certificates list
+        navigate("/dashboard/manage-birth-certificates");
+      } else {
+        // For create: include numeric id from URL if provided (some backends expect it)
+        let createPayload = { ...payload };
+        if (id) {
+          const numericCreateId = Number(id);
+          if (isNaN(numericCreateId)) {
+            Swal.fire({
+              icon: "error",
+              title: "Invalid ID",
+              text: "Provided ID is invalid.",
+            });
+            return;
+          }
+          createPayload.id = numericCreateId;
+          console.log(
+            "Creating certificate with payload (including id):",
+            createPayload
+          );
+        } else {
+          console.log("Creating certificate with payload:", createPayload);
+        }
+
+        await dispatch(createBirthCertificate(createPayload)).unwrap();
+
+        Swal.fire({
+          icon: "success",
+          title: "Certificate Created!",
+          text: "The birth certificate has been successfully created.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        resetForm();
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: isEditMode ? "Update Failed" : "Creation Failed",
+        text: error.message || "An unexpected error occurred.",
+      });
+    }
   };
 
   const validationSchema = Yup.object({
@@ -78,9 +221,7 @@ const EditBirthCertificate = () => {
       .required("Date of birth is required")
       .max(new Date(), "Date of birth cannot be in the future"),
     gender: Yup.string().required("Gender is required"),
-    time: Yup.string()
-      .required("Time of birth is required")
-      .matches(/^([01]\d|2[0-3]):([0-5]\d)$/, "Time must be in HH:mm format"),
+    time: Yup.string().required("Time of birth is required"),
   });
 
   return (
@@ -91,16 +232,19 @@ const EditBirthCertificate = () => {
       >
         <h3 className="mb-0">
           <i className="bi bi-heart-pulse me-2"></i>
-          Baby Birth Certificate Form
+          {isEditMode
+            ? "Edit Birth Certificate"
+            : "Baby Birth Certificate Form"}
         </h3>
       </div>
 
       <div className="card-body">
         <Formik
           initialValues={initialValues}
+          enableReinitialize={true}
           validationSchema={validationSchema}
           onSubmit={(values, { resetForm }) =>
-            handleGenerate(values, { resetForm })
+            handleSubmit(values, { resetForm })
           }
         >
           {({ values, handleChange, handleSubmit, errors, touched }) => (
@@ -318,7 +462,7 @@ const EditBirthCertificate = () => {
                   ) : (
                     <>
                       <i className="bi bi-save-fill me-1"></i>
-                      Save Certificate
+                      {isEditMode ? "Update Certificate" : "Save Certificate"}
                     </>
                   )}
                 </button>

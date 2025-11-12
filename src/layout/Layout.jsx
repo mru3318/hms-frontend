@@ -412,9 +412,12 @@ const Layout = () => {
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink
+                      className="nav-link"
+                      to="/dashboard/add-doctor-schedule"
+                    >
                       Add Schedule
-                    </a>
+                    </NavLink>
                   </li>
                   <li className="nav-item">
                     <a className="nav-link" href="#">
