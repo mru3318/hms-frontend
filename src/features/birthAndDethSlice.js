@@ -30,6 +30,35 @@ export const fetchMothers = createAsyncThunk(
   }
 );
 
+// Fetch all birth reports from the /birth-report endpoint
+export const fetchBirthReports = createAsyncThunk(
+  "birthAndDeth/fetchBirthReports",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/birth-report`);
+      if (!res.ok) {
+        const text = await res.text();
+        console.log("fetchBirthReports error response text:", text);
+        return rejectWithValue(text || "Failed to fetch birth reports");
+      }
+      const data = await res.json();
+      // Normalize: if response wraps list in data/content, try to extract
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data.data)) return data.data;
+      if (Array.isArray(data.content)) return data.content;
+      // If object with items property
+      if (Array.isArray(data.items)) return data.items;
+      // Fallback: try to find any array inside object
+      const arr = Object.values(data).find((v) => Array.isArray(v));
+      if (Array.isArray(arr)) return arr;
+      // Otherwise return empty
+      return [];
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
 export const searchPatients = createAsyncThunk(
   "birthAndDeth/searchPatients",
   async (_, { rejectWithValue }) => {
@@ -145,6 +174,7 @@ const birthAndDethSlice = createSlice({
   initialState: {
     mothers: [],
     patients: [],
+    birthReports: [],
     status: "idle", // for fetchMothers
     error: null, // for fetchMothers
     creationStatus: "idle", // for createBirthCertificate
@@ -153,6 +183,8 @@ const birthAndDethSlice = createSlice({
     deathCreationError: null,
     searchStatus: "idle",
     searchError: null,
+    birthReportsStatus: "idle", // for fetchBirthReports
+    birthReportsError: null, // for fetchBirthReports
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -210,6 +242,21 @@ const birthAndDethSlice = createSlice({
         state.searchStatus = "failed";
         state.searchError = action.payload || action.error.message;
       });
+
+    // Fetch birth reports
+    builder
+      .addCase(fetchBirthReports.pending, (state) => {
+        state.birthReportsStatus = "loading";
+        state.birthReportsError = null;
+      })
+      .addCase(fetchBirthReports.fulfilled, (state, action) => {
+        state.birthReportsStatus = "succeeded";
+        state.birthReports = action.payload;
+      })
+      .addCase(fetchBirthReports.rejected, (state, action) => {
+        state.birthReportsStatus = "failed";
+        state.birthReportsError = action.payload || action.error.message;
+      });
   },
 });
 
@@ -228,3 +275,8 @@ export const selectDeathCreationError = (state) =>
 export const selectPatients = (state) => state.birthAndDeth?.patients;
 export const selectPatientsStatus = (state) => state.birthAndDeth?.searchStatus;
 export const selectPatientsError = (state) => state.birthAndDeth?.searchError;
+export const selectBirthReports = (state) => state.birthAndDeth?.birthReports;
+export const selectBirthReportsStatus = (state) =>
+  state.birthAndDeth?.birthReportsStatus;
+export const selectBirthReportsError = (state) =>
+  state.birthAndDeth?.birthReportsError;
