@@ -6,6 +6,7 @@ import {
   selectBirthReportsStatus,
   selectBirthReportsError,
 } from "../../../features/birthAndDethSlice";
+import { NavLink } from "react-router-dom";
 
 const ManageBirthCertificates = () => {
   const dispatch = useDispatch();
@@ -37,26 +38,6 @@ const ManageBirthCertificates = () => {
   const handleView = (data) => {
     setSelected(data);
     setMode("view");
-
-    // Simple approach: use data-bs-toggle and data-bs-target if Bootstrap JS is available
-    if (window.bootstrap && modalRef.current) {
-      try {
-        const modal = new window.bootstrap.Modal(modalRef.current);
-        modal.show();
-      } catch (error) {
-        console.error("Bootstrap modal error:", error);
-        // Fallback to programmatic approach
-        showModalManually();
-      }
-    } else {
-      console.error("Bootstrap not available, using manual approach");
-      showModalManually();
-    }
-  };
-
-  const handleEdit = (data) => {
-    setSelected({ ...data });
-    setMode("edit");
 
     // Simple approach: use data-bs-toggle and data-bs-target if Bootstrap JS is available
     if (window.bootstrap && modalRef.current) {
@@ -344,12 +325,12 @@ const ManageBirthCertificates = () => {
                       >
                         <i className="fa-solid fa-eye me-1"></i> View
                       </button>
-                      <button
+                      <NavLink
                         className="btn btn-warning btn-sm"
-                        onClick={() => handleEdit(row)}
+                        to={`/dashboard/edit-birth-certificate/${row.id}`}
                       >
                         <i className="fa-solid fa-pen-to-square me-1"></i> Edit
-                      </button>
+                      </NavLink>
                     </td>
                   </tr>
                 ))

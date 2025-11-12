@@ -34,6 +34,7 @@ import AddDonor from "./components/blood-bank/add-donor/AddDonor";
 import BabyBirthCertificate from "./components/reports/baby-birth-certificate/BabyBirthCertificate";
 import DeathCertificateForm from "./components/reports/deth-certificate/DeathCertificateForm";
 import ManageBirthCertificates from "./components/reports/manage-birth-certificates/ManageBirthCertificates";
+import EditBirthCertificate from "./components/reports/edit-birth-certificate/EditBirthCertificate";
 
 function App() {
   const router = createBrowserRouter([
@@ -197,6 +198,10 @@ function App() {
         {
           path: "manage-birth-certificates",
           element: <ManageBirthCertificates />,
+        },
+        {
+          path: "edit-birth-certificate/:id",
+          element: <EditBirthCertificate />,
         },
       ],
     },
