@@ -609,6 +609,14 @@ const Layout = () => {
                       Death Reports
                     </NavLink>
                   </li>
+                  <li className="nav-item">
+                    <NavLink
+                      className="nav-link"
+                      to="manage-birth-certificates"
+                    >
+                      Manage Birth Certificates
+                    </NavLink>
+                  </li>
                 </ul>
               </div>
             </li>
