@@ -194,12 +194,54 @@ export const createDeathCertificate = createAsyncThunk(
   }
 );
 
+// Fetch all death certificates (or a single object) from /death-certificate
+export const fetchDeathCertificates = createAsyncThunk(
+  "birthAndDeth/fetchDeathCertificates",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/death-certificate`);
+      if (!res.ok) {
+        const text = await res.text();
+        return rejectWithValue(text || "Failed to fetch death certificates");
+      }
+      const data = await res.json();
+      // normalize: prefer array, but if API returns single object, wrap it
+      if (Array.isArray(data)) return data;
+      if (data == null) return [];
+      // if it's an object representing a single certificate, wrap it
+      if (typeof data === "object") return [data];
+      return [];
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
+// Fetch single death certificate by id
+export const fetchDeathCertificate = createAsyncThunk(
+  "birthAndDeth/fetchDeathCertificate",
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/death-certificate/${id}`);
+      if (!res.ok) {
+        const text = await res.text();
+        return rejectWithValue(text || "Failed to fetch death certificate");
+      }
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
 const birthAndDethSlice = createSlice({
   name: "birthAndDeth",
   initialState: {
     mothers: [],
     patients: [],
     birthReports: [],
+    deathCertificates: [],
     status: "idle", // for fetchMothers
     error: null, // for fetchMothers
     creationStatus: "idle", // for createBirthCertificate
@@ -212,6 +254,11 @@ const birthAndDethSlice = createSlice({
     searchError: null,
     birthReportsStatus: "idle", // for fetchBirthReports
     birthReportsError: null, // for fetchBirthReports
+    deathCertificatesStatus: "idle",
+    deathCertificatesError: null,
+    selectedDeathCertificate: null,
+    selectedDeathCertificateStatus: "idle",
+    selectedDeathCertificateError: null,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -306,6 +353,37 @@ const birthAndDethSlice = createSlice({
         state.birthReportsStatus = "failed";
         state.birthReportsError = action.payload || action.error.message;
       });
+
+    // Fetch death certificates (list)
+    builder
+      .addCase(fetchDeathCertificates.pending, (state) => {
+        state.deathCertificatesStatus = "loading";
+        state.deathCertificatesError = null;
+      })
+      .addCase(fetchDeathCertificates.fulfilled, (state, action) => {
+        state.deathCertificatesStatus = "succeeded";
+        state.deathCertificates = action.payload;
+      })
+      .addCase(fetchDeathCertificates.rejected, (state, action) => {
+        state.deathCertificatesStatus = "failed";
+        state.deathCertificatesError = action.payload || action.error.message;
+      });
+
+    // Fetch single death certificate
+    builder
+      .addCase(fetchDeathCertificate.pending, (state) => {
+        state.selectedDeathCertificateStatus = "loading";
+        state.selectedDeathCertificateError = null;
+      })
+      .addCase(fetchDeathCertificate.fulfilled, (state, action) => {
+        state.selectedDeathCertificateStatus = "succeeded";
+        state.selectedDeathCertificate = action.payload;
+      })
+      .addCase(fetchDeathCertificate.rejected, (state, action) => {
+        state.selectedDeathCertificateStatus = "failed";
+        state.selectedDeathCertificateError =
+          action.payload || action.error.message;
+      });
   },
 });
 
@@ -331,3 +409,18 @@ export const selectBirthReportsStatus = (state) =>
   state.birthAndDeth?.birthReportsStatus;
 export const selectBirthReportsError = (state) =>
   state.birthAndDeth?.birthReportsError;
+
+// Death certificates selectors
+export const selectDeathCertificates = (state) =>
+  state.birthAndDeth?.deathCertificates;
+export const selectDeathCertificatesStatus = (state) =>
+  state.birthAndDeth?.deathCertificatesStatus;
+export const selectDeathCertificatesError = (state) =>
+  state.birthAndDeth?.deathCertificatesError;
+
+export const selectSelectedDeathCertificate = (state) =>
+  state.birthAndDeth?.selectedDeathCertificate;
+export const selectSelectedDeathCertificateStatus = (state) =>
+  state.birthAndDeth?.selectedDeathCertificateStatus;
+export const selectSelectedDeathCertificateError = (state) =>
+  state.birthAndDeth?.selectedDeathCertificateError;

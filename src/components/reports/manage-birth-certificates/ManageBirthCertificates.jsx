@@ -311,54 +311,70 @@ const ManageBirthCertificates = () => {
         )}
 
         {birthReportsStatus === "succeeded" && (
-          <table className="table table-striped table-bordered text-center align-middle">
-            <thead className="table-primary">
-              <tr>
-                <th>Sr No.</th>
-                <th>Certificate Number</th>
-                <th>Mother Name</th>
-                <th>Date of Birth</th>
-                <th>Time of Birth</th>
-                <th>Time of Issue</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {birthReports.length === 0 ? (
+          <div className="table-responsive">
+            <table className="table table-striped table-bordered table-sm text-center align-middle">
+              <thead className="table-primary">
                 <tr>
-                  <td colSpan="7" className="text-muted py-4">
-                    <i className="fa-solid fa-inbox me-2"></i>
-                    No birth reports found
-                  </td>
+                  <th>Sr No.</th>
+                  <th>Certificate Number</th>
+                  <th>Mother Name</th>
+                  <th className="d-none d-md-table-cell">Date of Birth</th>
+                  <th className="d-none d-md-table-cell">Time of Birth</th>
+                  <th className="d-none d-md-table-cell">Time of Issue</th>
+                  <th>Action</th>
                 </tr>
-              ) : (
-                birthReports.map((row, index) => (
-                  <tr key={row.id || index}>
-                    <td>{index + 1}</td>
-                    <td>{row.certificateNumber || "N/A"}</td>
-                    <td>{row.motherName || row.fullName || "N/A"}</td>
-                    <td>{row.dateOfBirth || "N/A"}</td>
-                    <td>{row.timeOfBirth || row.time || "N/A"}</td>
-                    <td>{row.timeOfIssue || "N/A"}</td>
-                    <td>
-                      <button
-                        className="btn btn-info btn-sm me-1"
-                        onClick={() => handleView(row)}
-                      >
-                        <i className="fa-solid fa-eye me-1"></i> View
-                      </button>
-                      <NavLink
-                        className="btn btn-warning btn-sm"
-                        to={`/dashboard/edit-birth-certificate/${row.id}`}
-                      >
-                        <i className="fa-solid fa-pen-to-square me-1"></i> Edit
-                      </NavLink>
+              </thead>
+              <tbody>
+                {birthReports.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="text-muted py-4">
+                      <i className="fa-solid fa-inbox me-2"></i>
+                      No birth reports found
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  birthReports.map((row, index) => (
+                    <tr key={row.id || index}>
+                      <td>{index + 1}</td>
+                      <td>{row.certificateNumber || "N/A"}</td>
+                      <td>{row.motherName || row.fullName || "N/A"}</td>
+                      <td className="d-none d-md-table-cell">
+                        {row.dateOfBirth || "N/A"}
+                      </td>
+                      <td className="d-none d-md-table-cell">
+                        {row.timeOfBirth || row.time || "N/A"}
+                      </td>
+                      <td className="d-none d-md-table-cell">
+                        {row.timeOfIssue || "N/A"}
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-info btn-sm me-1"
+                          onClick={() => handleView(row)}
+                          aria-label={`View ${
+                            row.motherName || row.fullName || ""
+                          }`}
+                        >
+                          <i className="fa-solid fa-eye"></i>
+                          <span className="d-none d-sm-inline ms-1">View</span>
+                        </button>
+                        <NavLink
+                          className="btn btn-warning btn-sm"
+                          to={`/dashboard/edit-birth-certificate/${row.id}`}
+                          aria-label={`Edit ${
+                            row.motherName || row.fullName || ""
+                          }`}
+                        >
+                          <i className="fa-solid fa-pen-to-square"></i>
+                          <span className="d-none d-sm-inline ms-1">Edit</span>
+                        </NavLink>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -371,7 +387,7 @@ const ManageBirthCertificates = () => {
         aria-hidden="true"
         ref={modalRef}
       >
-        <div className="modal-dialog modal-dialog-centered modal-lg">
+        <div className="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
           <div className="modal-content">
             <div
               className="modal-header text-white"

@@ -1,9 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import "./ManageDethCertificates.css";
+import {
+  fetchDeathCertificates,
+  selectDeathCertificates,
+  selectDeathCertificatesStatus,
+} from "../../../features/birthAndDethSlice";
 
 const ManageDethCertificates = () => {
   const [selected, setSelected] = useState(null);
   const modalRef = useRef(null);
+  const dispatch = useDispatch();
+  const deathCertificates = useSelector(selectDeathCertificates) || [];
+  const deathCertificatesStatus = useSelector(selectDeathCertificatesStatus);
 
   useEffect(() => {
     console.log(
@@ -11,6 +20,16 @@ const ManageDethCertificates = () => {
       !!window.bootstrap
     );
   }, []);
+
+  useEffect(() => {
+    // fetch death certificates on mount if not already loading
+    if (
+      deathCertificatesStatus === "idle" ||
+      deathCertificatesStatus === undefined
+    ) {
+      dispatch(fetchDeathCertificates());
+    }
+  }, [dispatch, deathCertificatesStatus]);
 
   const showModalManually = () => {
     if (modalRef.current) {
@@ -84,9 +103,16 @@ const ManageDethCertificates = () => {
     );
     setText(
       "deceasedName",
-      selected.deceasedName || selected.name || selected.patientName || "-"
+      selected.deceasedName ||
+        selected.fullName ||
+        selected.name ||
+        selected.patientName ||
+        "-"
     );
-    setText("certAge", selected.age ?? selected.years ?? "-");
+    setText(
+      "certAge",
+      selected.ageAtDeath ?? selected.age ?? selected.years ?? "-"
+    );
     setText(
       "certPlace",
       selected.placeOfDeath || selected.place || selected.location || "-"
@@ -199,88 +225,57 @@ const ManageDethCertificates = () => {
                 </tr>
               </thead>
               <tbody id="deathTableBody">
-                <tr>
-                  <td>1</td>
-                  <td>Robert Brown</td>
-                  <td>City Hospital</td>
-                  <td className="d-none d-md-table-cell">03:45 PM</td>
-                  <td>2025-10-15</td>
-                  <td className="d-none d-md-table-cell">2025-10-17</td>
-                  <td className="d-none d-md-table-cell">Male</td>
-                  <td className="d-none d-md-table-cell">68</td>
-                  <td>
-                    <button
-                      className="btn btn-info btn-sm me-1 view-btn"
-                      aria-label="View"
-                      onClick={() =>
-                        handleView({
-                          certificateNumber: "CERT-001",
-                          deceasedName: "Robert Brown",
-                          placeOfDeath: "City Hospital",
-                          attendingDoctor: "-",
-                          timeOfDeath: "03:45 PM",
-                          dateOfDeath: "2025-10-15",
-                          issueDate: "2025-10-17",
-                          age: 68,
-                          gender: "Male",
-                          causeOfDeath: "-",
-                          address: "-",
-                        })
-                      }
-                    >
-                      <i className="fa-solid fa-eye"></i>
-                      <span className="d-none d-sm-inline ms-1">View</span>
-                    </button>
-                    <button
-                      className="btn btn-warning btn-sm edit-btn"
-                      aria-label="Edit"
-                    >
-                      <i className="fa-solid fa-pen-to-square"></i>
-                      <span className="d-none d-sm-inline ms-1">Edit</span>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>2</td>
-                  <td>Sunita Deshmukh</td>
-                  <td>Lotus Clinic</td>
-                  <td className="d-none d-md-table-cell">11:30 AM</td>
-                  <td>2025-10-20</td>
-                  <td className="d-none d-md-table-cell">2025-10-22</td>
-                  <td className="d-none d-md-table-cell">Female</td>
-                  <td className="d-none d-md-table-cell">74</td>
-                  <td>
-                    <button
-                      className="btn btn-info btn-sm me-1 view-btn"
-                      aria-label="View"
-                      onClick={() =>
-                        handleView({
-                          certificateNumber: "CERT-002",
-                          deceasedName: "Sunita Deshmukh",
-                          placeOfDeath: "Lotus Clinic",
-                          attendingDoctor: "-",
-                          timeOfDeath: "11:30 AM",
-                          dateOfDeath: "2025-10-20",
-                          issueDate: "2025-10-22",
-                          age: 74,
-                          gender: "Female",
-                          causeOfDeath: "-",
-                          address: "-",
-                        })
-                      }
-                    >
-                      <i className="fa-solid fa-eye"></i>
-                      <span className="d-none d-sm-inline ms-1">View</span>
-                    </button>
-                    <button
-                      className="btn btn-warning btn-sm edit-btn"
-                      aria-label="Edit"
-                    >
-                      <i className="fa-solid fa-pen-to-square"></i>
-                      <span className="d-none d-sm-inline ms-1">Edit</span>
-                    </button>
-                  </td>
-                </tr>
+                {deathCertificates && deathCertificates.length > 0 ? (
+                  deathCertificates.map((row, idx) => {
+                    const name =
+                      row.fullName || row.deceasedName || row.name || "-";
+                    const place = row.placeOfDeath || row.place || "-";
+                    const time = row.timeOfDeath || row.time || "-";
+                    const date =
+                      row.dateOfDeath || row.date || row.issueDate || "-";
+                    const issueDate = row.issueDate || row.issue_date || "-";
+                    const gender = row.gender || row.sex || "-";
+                    const age = row.ageAtDeath ?? row.age ?? row.years ?? "-";
+
+                    return (
+                      <tr key={idx}>
+                        <td>{idx + 1}</td>
+                        <td>{name}</td>
+                        <td>{place}</td>
+                        <td className="d-none d-md-table-cell">{time}</td>
+                        <td>{date}</td>
+                        <td className="d-none d-md-table-cell">{issueDate}</td>
+                        <td className="d-none d-md-table-cell">{gender}</td>
+                        <td className="d-none d-md-table-cell">{age}</td>
+                        <td>
+                          <button
+                            className="btn btn-info btn-sm me-1 view-btn"
+                            aria-label="View"
+                            onClick={() => handleView(row)}
+                          >
+                            <i className="fa-solid fa-eye"></i>
+                            <span className="d-none d-sm-inline ms-1">
+                              View
+                            </span>
+                          </button>
+                          <button
+                            className="btn btn-warning btn-sm edit-btn"
+                            aria-label="Edit"
+                          >
+                            <i className="fa-solid fa-pen-to-square"></i>
+                            <span className="d-none d-sm-inline ms-1">
+                              Edit
+                            </span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={9}>No records found.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
