@@ -620,6 +620,14 @@ const Layout = () => {
                       Manage Birth Certificates
                     </NavLink>
                   </li>
+                  <li className="nav-item">
+                    <NavLink
+                      className="nav-link"
+                      to="manage-death-certificates"
+                    >
+                      Manage Death Certificates
+                    </NavLink>
+                  </li>
                 </ul>
               </div>
             </li>

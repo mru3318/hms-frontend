@@ -36,6 +36,7 @@ import DeathCertificateForm from "./components/reports/deth-certificate/DeathCer
 import ManageBirthCertificates from "./components/reports/manage-birth-certificates/ManageBirthCertificates";
 import EditBirthCertificate from "./components/reports/edit-birth-certificate/EditBirthCertificate";
 import AddDoctorSchedule from "./components/doctor-schedule/add-schedule/AddDoctorSchedule";
+import ManageDethCertificates from "./components/reports/manage-deth-certificates/ManageDethCertificates";
 
 function App() {
   const router = createBrowserRouter([
@@ -209,6 +210,10 @@ function App() {
         {
           path: "add-doctor-schedule",
           element: <AddDoctorSchedule />,
+        },
+        {
+          path: "manage-death-certificates",
+          element: <ManageDethCertificates />,
         },
       ],
     },
