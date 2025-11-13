@@ -165,6 +165,10 @@ export const createDeathCertificate = createAsyncThunk(
         placeOfDeath: deathData.place,
         address: deathData.address,
         attendingDoctor: deathData.doctor,
+        // include contact number and dateOfBirth when available so backend
+        // can store or validate them. These are sent only if present in the form.
+        contactNumber: deathData.contactNumber || null,
+        dateOfBirth: deathData.birthDate || null,
         issueDate: deathData.issueDate,
         // backend expects patientId (numeric Long)
         patientId: patientIdValue,
@@ -235,6 +239,58 @@ export const fetchDeathCertificate = createAsyncThunk(
   }
 );
 
+// Update Death Certificate
+export const updateDeathCertificate = createAsyncThunk(
+  "birthAndDeth/updateDeathCertificate",
+  async ({ id, deathData }, { rejectWithValue }) => {
+    try {
+      // Resolve numeric patientId from either patientId or hospitalPatientId
+      let patientIdValue = null;
+      if (deathData?.patientId !== undefined && deathData?.patientId !== null) {
+        const n = Number(deathData.patientId);
+        patientIdValue = isNaN(n) ? null : n;
+      } else if (deathData?.hospitalPatientId) {
+        const n2 = Number(deathData.hospitalPatientId);
+        patientIdValue = isNaN(n2) ? null : n2;
+      }
+
+      const payload = {
+        fullName: deathData.deceasedName,
+        gender: deathData.gender,
+        dateOfDeath: deathData.deathDate,
+        timeOfDeath: deathData.deathTime,
+        ageAtDeath: Number(deathData.age) || null,
+        causeOfDeath: deathData.cause,
+        placeOfDeath: deathData.place,
+        address: deathData.address,
+        attendingDoctor: deathData.doctor,
+        // include contactNumber and dateOfBirth in update payload as well
+        contactNumber: deathData.contactNumber || null,
+        dateOfBirth: deathData.birthDate || null,
+        issueDate: deathData.issueDate,
+        patientId: patientIdValue,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/death-certificate/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        return rejectWithValue(
+          errorData || "Failed to update death certificate"
+        );
+      }
+
+      return await response.json();
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
 const birthAndDethSlice = createSlice({
   name: "birthAndDeth",
   initialState: {
@@ -259,6 +315,8 @@ const birthAndDethSlice = createSlice({
     selectedDeathCertificate: null,
     selectedDeathCertificateStatus: "idle",
     selectedDeathCertificateError: null,
+    deathUpdateStatus: "idle",
+    deathUpdateError: null,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -383,6 +441,26 @@ const birthAndDethSlice = createSlice({
         state.selectedDeathCertificateStatus = "failed";
         state.selectedDeathCertificateError =
           action.payload || action.error.message;
+      })
+      // Update death certificate
+      .addCase(updateDeathCertificate.pending, (state) => {
+        state.deathUpdateStatus = "loading";
+        state.deathUpdateError = null;
+      })
+      .addCase(updateDeathCertificate.fulfilled, (state, action) => {
+        state.deathUpdateStatus = "succeeded";
+        const updated = action.payload;
+        if (updated) {
+          state.selectedDeathCertificate = updated;
+          const idx = state.deathCertificates.findIndex(
+            (d) => d.id === updated.id || d.patientId === updated.patientId
+          );
+          if (idx !== -1) state.deathCertificates[idx] = updated;
+        }
+      })
+      .addCase(updateDeathCertificate.rejected, (state, action) => {
+        state.deathUpdateStatus = "failed";
+        state.deathUpdateError = action.payload || action.error.message;
       });
   },
 });
@@ -424,3 +502,7 @@ export const selectSelectedDeathCertificateStatus = (state) =>
   state.birthAndDeth?.selectedDeathCertificateStatus;
 export const selectSelectedDeathCertificateError = (state) =>
   state.birthAndDeth?.selectedDeathCertificateError;
+export const selectDeathUpdateStatus = (state) =>
+  state.birthAndDeth?.deathUpdateStatus;
+export const selectDeathUpdateError = (state) =>
+  state.birthAndDeth?.deathUpdateError;

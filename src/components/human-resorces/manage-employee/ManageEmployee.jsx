@@ -271,253 +271,259 @@ function ManageEmployee() {
   };
 
   return (
-    <>
+    <div>
       {/* Header */}
-      <div className="card-border">
-        <div className="card-header d-flex justify-content-center align-items-center bg-primary">
-          <div className="text-center d-flex align-items-center">
-            <i className="fa-solid fa-users-rays me-2 text-white"></i>
-            <span className="text-white fs-5 fw-semibold">
-              Manage Employees
-            </span>
+      <div className="container my-4 p-0 m-0">
+        <div className="card-border">
+          <div className="card-header d-flex justify-content-center align-items-center bg-primary">
+            <div className="text-center d-flex align-items-center">
+              <i className="fa-solid fa-users-rays me-2 text-white"></i>
+              <span className="text-white fs-5 fw-semibold">
+                Manage Employees
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="container-fluid  p-0">
-        {/* Tabs */}
-        <ul className="nav nav-tabs">
-          {Object.keys(roleIds).map((tab) => (
-            <li className="nav-item" key={tab}>
-              <button
-                className={`nav-link ${activeTab === tab ? "active" : ""}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="container-fluid">
+          {/* Tabs */}
+          <ul
+            className="nav nav-tabs nav-fill w-100"
+            id="employeeTabs"
+            role="tablist"
+          >
+            {Object.keys(roleIds).map((tab) => (
+              <li className="nav-item" key={tab}>
+                <button
+                  className={`nav-link ${activeTab === tab ? "active" : ""}`}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              </li>
+            ))}
+          </ul>
 
-        {/* Table */}
-        <div className="table-responsive">
-          <table className="table table-bordered table-hover text-center">
-            <thead className="table-primary">
-              <tr>
-                <th>Sr.No</th>
-                {selectedColumns.map((col) => (
-                  <th key={col.key}>{col.label}</th>
-                ))}
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
+          {/* Table */}
+          <div className="table-responsive">
+            <table className="table table-bordered table-hover text-center">
+              <thead className="table-primary">
+                <tr>
+                  <th>Sr.No</th>
+                  {selectedColumns.map((col) => (
+                    <th key={col.key}>{col.label}</th>
+                  ))}
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
 
-            <tbody>
-              {employees.length > 0 ? (
-                employees.map((emp, index) => (
-                  <tr key={emp.userId}>
-                    <td>{index + 1}</td>
+              <tbody>
+                {employees.length > 0 ? (
+                  employees.map((emp, index) => (
+                    <tr key={emp.userId}>
+                      <td>{index + 1}</td>
 
-                    {selectedColumns.map((col) => {
-                      if (col.key === "profilePic") {
-                        return (
-                          <td key={col.key}>
-                            <img
-                              src={emp.profilePic || "/default-user.png"}
-                              alt="Profile"
-                              width="45"
-                              height="45"
-                              style={{
-                                borderRadius: "50%",
-                                objectFit: "cover",
-                              }}
-                            />
-                          </td>
-                        );
-                      }
-
-                      if (col.key === "fullName") {
-                        return (
-                          <td key={col.key}>
-                            {emp.firstName} {emp.lastName}
-                          </td>
-                        );
-                      }
-
-                      return <td key={col.key}>{emp[col.key] || "-"}</td>;
-                    })}
-
-                    <td>
-                      <select
-                        className={`form-select form-select-sm status-badge status-${emp.status}`}
-                        value={emp.status}
-                        onChange={(e) =>
-                          handleStatusChange(emp.userId, e.target.value)
+                      {selectedColumns.map((col) => {
+                        if (col.key === "profilePic") {
+                          return (
+                            <td key={col.key}>
+                              <img
+                                src={emp.profilePic || "/default-user.png"}
+                                alt="Profile"
+                                width="45"
+                                height="45"
+                                style={{
+                                  borderRadius: "50%",
+                                  objectFit: "cover",
+                                }}
+                              />
+                            </td>
+                          );
                         }
-                      >
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="ON_LEAVE">ON_LEAVE</option>
-                        <option value="RESIGNED">RESIGNED</option>
-                      </select>
-                    </td>
 
-                    <td>
-                      <button
-                        className="btn btn-info btn-sm me-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#employeeModal"
-                        onClick={() => handleView(emp)}
-                      >
-                        <i className="fa fa-eye"></i>
-                      </button>
+                        if (col.key === "fullName") {
+                          return (
+                            <td key={col.key}>
+                              {emp.firstName} {emp.lastName}
+                            </td>
+                          );
+                        }
 
-                      <button
-                        className="btn btn-secondary btn-sm me-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#aadharModal"
-                        onClick={() => handleViewAadhar(emp)}
-                      >
-                        <i className="fa fa-id-card"></i>
-                      </button>
+                        return <td key={col.key}>{emp[col.key] || "-"}</td>;
+                      })}
 
-                      <button className="btn btn-warning btn-sm">
-                        <i className="fa fa-pen"></i>
-                      </button>
+                      <td>
+                        <select
+                          className={`form-select form-select-sm status-badge status-${emp.status}`}
+                          value={emp.status}
+                          onChange={(e) =>
+                            handleStatusChange(emp.userId, e.target.value)
+                          }
+                        >
+                          <option value="ACTIVE">ACTIVE</option>
+                          <option value="ON_LEAVE">ON_LEAVE</option>
+                          <option value="RESIGNED">RESIGNED</option>
+                        </select>
+                      </td>
+
+                      <td>
+                        <button
+                          className="btn btn-info btn-sm me-1"
+                          data-bs-toggle="modal"
+                          data-bs-target="#employeeModal"
+                          onClick={() => handleView(emp)}
+                        >
+                          <i className="fa fa-eye"></i>
+                        </button>
+
+                        <button
+                          className="btn btn-secondary btn-sm me-1"
+                          data-bs-toggle="modal"
+                          data-bs-target="#aadharModal"
+                          onClick={() => handleViewAadhar(emp)}
+                        >
+                          <i className="fa fa-id-card"></i>
+                        </button>
+
+                        <button className="btn btn-warning btn-sm">
+                          <i className="fa fa-pen"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={selectedColumns.length + 3}
+                      className="text-muted"
+                    >
+                      No Employees Found
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={selectedColumns.length + 3}
-                    className="text-muted"
-                  >
-                    No Employees Found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
 
-          {/* Employee Modal */}
-          <div className="modal fade" id="employeeModal" tabIndex="-1">
-            <div className="modal-dialog modal-lg">
-              <div className="modal-content">
-                <div className="modal-header bg-primary text-white">
-                  <h5 className="modal-title">Employee Details</h5>
-                  <button
-                    type="button"
-                    className="btn-close btn-close-white"
-                    data-bs-dismiss="modal"
-                  ></button>
-                </div>
+            {/* Employee Modal */}
+            <div className="modal fade" id="employeeModal" tabIndex="-1">
+              <div className="modal-dialog modal-lg">
+                <div className="modal-content">
+                  <div className="modal-header bg-primary text-white">
+                    <h5 className="modal-title">Employee Details</h5>
+                    <button
+                      type="button"
+                      className="btn-close btn-close-white"
+                      data-bs-dismiss="modal"
+                    ></button>
+                  </div>
 
-                <div className="modal-body">
-                  {selectedEmployee && (
-                    <div className="row">
-                      <div className="col-md-5 d-flex justify-content-center align-items-start">
-                        <img
-                          src={
-                            selectedEmployee.profilePic || "/default-user.png"
-                          }
-                          alt="Profile"
-                          style={{
-                            width: "200px",
-                            height: "200px",
-                            borderRadius: "10px",
-                            objectFit: "cover",
-                          }}
-                        />
+                  <div className="modal-body">
+                    {selectedEmployee && (
+                      <div className="row">
+                        <div className="col-md-5 d-flex justify-content-center align-items-start">
+                          <img
+                            src={
+                              selectedEmployee.profilePic || "/default-user.png"
+                            }
+                            alt="Profile"
+                            style={{
+                              width: "200px",
+                              height: "200px",
+                              borderRadius: "10px",
+                              objectFit: "cover",
+                            }}
+                          />
+                        </div>
+
+                        <div className="col-md-7">
+                          <h4>
+                            <strong>Name:</strong> {selectedEmployee.firstName}{" "}
+                            {selectedEmployee.lastName}
+                          </h4>
+                          <p>
+                            <strong>Qualification:</strong>{" "}
+                            {selectedEmployee.qualification || "-"}
+                          </p>
+                          <p>
+                            <strong>Experience:</strong>{" "}
+                            {selectedEmployee.experience || "-"}
+                          </p>
+                          <p>
+                            <strong>Blood Group:</strong>{" "}
+                            {selectedEmployee.bloodGroup || "-"}
+                          </p>
+                          <p>
+                            <strong>DOB:</strong> {selectedEmployee.dob || "-"}
+                          </p>
+                          <p>
+                            <strong>Age:</strong> {selectedEmployee.age || "-"}
+                          </p>
+                          <p>
+                            <strong>Gender:</strong>{" "}
+                            {selectedEmployee.gender || "-"}
+                          </p>
+                          <p>
+                            <strong>Date Joined:</strong>{" "}
+                            {selectedEmployee.joiningDate || "-"}
+                          </p>
+                          <p>
+                            <strong>Contact:</strong>{" "}
+                            {selectedEmployee.mobileNo || "-"}
+                          </p>
+                          <p>
+                            <strong>Email:</strong>{" "}
+                            {selectedEmployee.email || "-"}
+                          </p>
+                          <p>
+                            <strong>Address:</strong>{" "}
+                            {selectedEmployee.address1 || "-"},{" "}
+                            {selectedEmployee.city}, {selectedEmployee.district}
+                            , {selectedEmployee.country}
+                          </p>
+                        </div>
                       </div>
-
-                      <div className="col-md-7">
-                        <h4>
-                          <strong>Name:</strong> {selectedEmployee.firstName}{" "}
-                          {selectedEmployee.lastName}
-                        </h4>
-                        <p>
-                          <strong>Qualification:</strong>{" "}
-                          {selectedEmployee.qualification || "-"}
-                        </p>
-                        <p>
-                          <strong>Experience:</strong>{" "}
-                          {selectedEmployee.experience || "-"}
-                        </p>
-                        <p>
-                          <strong>Blood Group:</strong>{" "}
-                          {selectedEmployee.bloodGroup || "-"}
-                        </p>
-                        <p>
-                          <strong>DOB:</strong> {selectedEmployee.dob || "-"}
-                        </p>
-                        <p>
-                          <strong>Age:</strong> {selectedEmployee.age || "-"}
-                        </p>
-                        <p>
-                          <strong>Gender:</strong>{" "}
-                          {selectedEmployee.gender || "-"}
-                        </p>
-                        <p>
-                          <strong>Date Joined:</strong>{" "}
-                          {selectedEmployee.joiningDate || "-"}
-                        </p>
-                        <p>
-                          <strong>Contact:</strong>{" "}
-                          {selectedEmployee.mobileNo || "-"}
-                        </p>
-                        <p>
-                          <strong>Email:</strong>{" "}
-                          {selectedEmployee.email || "-"}
-                        </p>
-                        <p>
-                          <strong>Address:</strong>{" "}
-                          {selectedEmployee.address1 || "-"},{" "}
-                          {selectedEmployee.city}, {selectedEmployee.district},{" "}
-                          {selectedEmployee.country}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Aadhar Modal */}
-          <div className="modal fade" id="aadharModal" tabIndex="-1">
-            <div className="modal-dialog modal-md modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header bg-dark text-white">
-                  <h5 className="modal-title">Aadhar Card</h5>
-                  <button
-                    type="button"
-                    className="btn-close btn-close-white"
-                    data-bs-dismiss="modal"
-                  ></button>
-                </div>
+            {/* Aadhar Modal */}
+            <div className="modal fade" id="aadharModal" tabIndex="-1">
+              <div className="modal-dialog modal-md modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header bg-dark text-white">
+                    <h5 className="modal-title">Aadhar Card</h5>
+                    <button
+                      type="button"
+                      className="btn-close btn-close-white"
+                      data-bs-dismiss="modal"
+                    ></button>
+                  </div>
 
-                <div className="modal-body text-center">
-                  {selectedAadhar ? (
-                    <img
-                      src={selectedAadhar}
-                      alt="Aadhar"
-                      style={{
-                        width: "100%",
-                        borderRadius: "8px",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ) : (
-                    <p className="text-muted">No Aadhar Card Uploaded</p>
-                  )}
+                  <div className="modal-body text-center">
+                    {selectedAadhar ? (
+                      <img
+                        src={selectedAadhar}
+                        alt="Aadhar"
+                        style={{
+                          width: "100%",
+                          borderRadius: "8px",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <p className="text-muted">No Aadhar Card Uploaded</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

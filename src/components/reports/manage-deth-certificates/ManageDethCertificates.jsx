@@ -6,6 +6,7 @@ import {
   selectDeathCertificates,
   selectDeathCertificatesStatus,
 } from "../../../features/birthAndDethSlice";
+import { NavLink } from "react-router-dom";
 
 const ManageDethCertificates = () => {
   const [selected, setSelected] = useState(null);
@@ -258,15 +259,16 @@ const ManageDethCertificates = () => {
                               View
                             </span>
                           </button>
-                          <button
+                          <NavLink
                             className="btn btn-warning btn-sm edit-btn"
                             aria-label="Edit"
+                            to={`/dashboard/edit-death-certificate/${row.id}`}
                           >
                             <i className="fa-solid fa-pen-to-square"></i>
                             <span className="d-none d-sm-inline ms-1">
                               Edit
                             </span>
-                          </button>
+                          </NavLink>
                         </td>
                       </tr>
                     );

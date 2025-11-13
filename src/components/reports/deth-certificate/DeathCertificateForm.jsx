@@ -7,6 +7,7 @@ import {
   selectPatientsStatus,
   selectPatientsError,
   createDeathCertificate,
+  fetchDeathCertificates,
 } from "../../../features/birthAndDethSlice";
 
 const DeathCertificateForm = () => {
@@ -182,6 +183,8 @@ const DeathCertificateForm = () => {
       .unwrap()
       .then((res) => {
         console.log("Death certificate created:", res);
+        // Refresh list so manage page updates automatically
+        dispatch(fetchDeathCertificates());
         Swal.fire({
           icon: "success",
           title: "Saved",
