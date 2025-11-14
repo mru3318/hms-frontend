@@ -40,6 +40,7 @@ import ManageDethCertificates from "./components/reports/manage-deth-certificate
 import EditDeathCertificateForm from "./components/reports/edit-death-certificate/EditDeathCertificateForm";
 import PharmacyModule from "./components/pharmacy/PharmacyModule";
 import DoctorScheduleList from "./components/doctor-schedule/schedule-list/DoctorScheduleList";
+import EditDoctorSchedule from "./components/doctor-schedule/edit-doctor-schedule/EditDoctorSchedule";
 
 function App() {
   const router = createBrowserRouter([
@@ -208,12 +209,6 @@ function App() {
           path: "edit-birth-certificate/:id",
           element: <EditBirthCertificate />,
         },
-
-        // Add Doctors Schedule
-        {
-          path: "add-doctor-schedule",
-          element: <AddDoctorSchedule />,
-        },
         {
           path: "manage-death-certificates",
           element: <ManageDethCertificates />,
@@ -222,9 +217,20 @@ function App() {
           path: "edit-death-certificate/:id",
           element: <EditDeathCertificateForm />,
         },
+
+        // Add Doctors Schedule
+        {
+          path: "add-doctor-schedule",
+          element: <AddDoctorSchedule />,
+        },
+
         {
           path: "view-doctor-schedule-list",
           element: <DoctorScheduleList />,
+        },
+        {
+          path: "edit-doctor-schedule/:id",
+          element: <EditDoctorSchedule />,
         },
 
         // Pharmacy Management Routes

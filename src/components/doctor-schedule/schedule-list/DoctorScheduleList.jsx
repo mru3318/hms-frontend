@@ -5,6 +5,9 @@ import {
   selectSchedules,
   selectSchedulesStatus,
 } from "../../../features/doctorScheduleSlice";
+import { deleteSchedule } from "../../../features/doctorScheduleSlice";
+import Swal from "sweetalert2";
+import { NavLink } from "react-router-dom";
 
 export default function DoctorScheduleList() {
   const dispatch = useDispatch();
@@ -77,18 +80,31 @@ export default function DoctorScheduleList() {
     const countDisplay = document.getElementById("countDisplay");
 
     function filterTable() {
-      const searchValue = searchInput.value.toLowerCase();
-      const departmentValue = departmentFilter.value;
-      const rows = tableBody.getElementsByTagName("tr");
+      if (!searchInput || !departmentFilter || !tableBody || !countDisplay)
+        return;
+
+      const searchValue = (searchInput.value || "").toLowerCase();
+      const departmentValue = departmentFilter.value || "";
+      const rows = tableBody.getElementsByTagName("tr") || [];
       let count = 0;
 
       for (let row of rows) {
-        const doctorName = row.cells[0].textContent.toLowerCase();
-        const specialization = row.cells[1].textContent;
+        // skip rows that aren't regular data rows (e.g., loading or 'no data' rows)
+        const cell0 = row.cells && row.cells[0];
+        const cell1 = row.cells && row.cells[1];
+        if (!cell0) {
+          // hide non-data rows by default
+          row.style.display = "none";
+          continue;
+        }
+
+        const doctorName = (cell0.textContent || "").toLowerCase();
+        const specialization =
+          cell1 && cell1.textContent ? cell1.textContent : "";
 
         const matchesSearch =
           doctorName.includes(searchValue) ||
-          specialization.toLowerCase().includes(searchValue);
+          (specialization || "").toLowerCase().includes(searchValue);
         const matchesDepartment =
           !departmentValue || specialization === departmentValue;
 
@@ -110,19 +126,42 @@ export default function DoctorScheduleList() {
     const tableClickHandler = (e) => {
       const deleteBtn = e.target.closest(".delete-btn");
       if (deleteBtn) {
-        if (window.confirm("Are you sure you want to delete this schedule?")) {
-          const row = deleteBtn.closest("tr");
-          row && row.remove();
-          filterTable();
-        }
+        const row = deleteBtn.closest("tr");
+        const scheduleId = row?.getAttribute("data-id");
+        if (!scheduleId) return;
+
+        Swal.fire({
+          title: "Delete schedule?",
+          text: "This will remove the schedule permanently.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Delete",
+          cancelButtonText: "Cancel",
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            try {
+              await dispatch(deleteSchedule(scheduleId)).unwrap();
+              Swal.fire({
+                icon: "success",
+                title: "Deleted",
+                timer: 1200,
+                showConfirmButton: false,
+              });
+              // refresh filter/count
+              filterTable();
+            } catch (err) {
+              const msg =
+                (err && (err.message || JSON.stringify(err))) ||
+                "Failed to delete";
+              Swal.fire({ icon: "error", title: "Delete failed", text: msg });
+            }
+          }
+        });
+
         return;
       }
 
-      const editBtn = e.target.closest(".edit-btn");
-      if (editBtn) {
-        alert("Edit functionality can be linked to your form page.");
-        return;
-      }
+      // edit handled by NavLink in the row; nothing to do here
     };
 
     tableBody && tableBody.addEventListener("click", tableClickHandler);
@@ -133,7 +172,7 @@ export default function DoctorScheduleList() {
         departmentFilter.removeEventListener("change", filterTable);
       tableBody && tableBody.removeEventListener("click", tableClickHandler);
     };
-  }, [schedulesStatus]);
+  }, [schedulesStatus, dispatch]);
 
   return (
     <div className="full-width-card card shadow-lg border-0">
@@ -223,7 +262,10 @@ export default function DoctorScheduleList() {
               {schedulesStatus === "succeeded" &&
                 schedules &&
                 schedules.map((schedule, i) => (
-                  <tr key={schedule.id || i}>
+                  <tr
+                    key={schedule.id || i}
+                    data-id={schedule.id || schedule._id}
+                  >
                     <td>
                       {schedule.doctorName || schedule.doctor?.name || "N/A"}
                     </td>
@@ -235,17 +277,37 @@ export default function DoctorScheduleList() {
                     </td>
                     <td>₹{schedule.appointmentFees || schedule.fees || 0}</td>
                     <td>
-                      <select
-                        className="form-select form-select-sm status"
-                        defaultValue={
-                          schedule.status || schedule.active
-                            ? "Active"
-                            : "Inactive"
+                      {(() => {
+                        // backend enums: ON_LEAVE, RESIGNED, ACTIVE
+                        const raw = (
+                          schedule.status ||
+                          (typeof schedule.active === "boolean"
+                            ? schedule.active
+                              ? "ACTIVE"
+                              : "RESIGNED"
+                            : undefined) ||
+                          ""
+                        )
+                          .toString()
+                          .toUpperCase();
+                        let text = "Unknown";
+                        let cls = "bg-secondary";
+                        if (raw === "ACTIVE") {
+                          text = "Active";
+                          cls = "bg-success";
+                        } else if (
+                          raw === "ON_LEAVE" ||
+                          raw === "ON-LEAVE" ||
+                          raw === "ON LEAVE"
+                        ) {
+                          text = "On Leave";
+                          cls = "bg-warning text-dark";
+                        } else if (raw === "RESIGNED") {
+                          text = "Resigned";
+                          cls = "bg-danger";
                         }
-                      >
-                        <option>Active</option>
-                        <option>Inactive</option>
-                      </select>
+                        return <span className={`badge ${cls}`}>{text}</span>;
+                      })()}
                     </td>
                     <td className="text-end">
                       <button
@@ -255,12 +317,13 @@ export default function DoctorScheduleList() {
                       >
                         <i className="bi bi-eye"></i>
                       </button>{" "}
-                      <button
+                      <NavLink
                         className="btn btn-sm text-white edit-btn"
                         style={{ backgroundColor: "#01C0C8" }}
+                        to={`/dashboard/edit-doctor-schedule/${schedule.id}`}
                       >
                         <i className="bi bi-pencil"></i>
-                      </button>{" "}
+                      </NavLink>{" "}
                       <button className="btn btn-sm btn-outline-danger delete-btn">
                         <i className="bi bi-trash"></i>
                       </button>
