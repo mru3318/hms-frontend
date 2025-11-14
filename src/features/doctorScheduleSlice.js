@@ -10,6 +10,7 @@ export const fetchSchedules = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await api.get("/doctor-schedule");
+      //   console.log("Fetched schedules:", res.data);
       return res.data;
     } catch (err) {
       const message = err.response?.data || err.message || "Network error";
@@ -89,11 +90,18 @@ const doctorScheduleSlice = createSlice({
       })
       .addCase(fetchSchedules.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.schedules = Array.isArray(action.payload)
-          ? action.payload
-          : action.payload
-          ? [action.payload]
-          : [];
+        // API may return { message, data: [...] } or an array directly
+        if (action.payload && action.payload.data) {
+          state.schedules = Array.isArray(action.payload.data)
+            ? action.payload.data
+            : [action.payload.data];
+        } else if (Array.isArray(action.payload)) {
+          state.schedules = action.payload;
+        } else if (action.payload) {
+          state.schedules = [action.payload];
+        } else {
+          state.schedules = [];
+        }
       })
       .addCase(fetchSchedules.rejected, (state, action) => {
         state.status = "failed";
@@ -107,7 +115,17 @@ const doctorScheduleSlice = createSlice({
       })
       .addCase(createSchedule.fulfilled, (state, action) => {
         state.createStatus = "succeeded";
-        if (action.payload) state.schedules.unshift(action.payload);
+        // created item might be in action.payload or action.payload.data
+        const created =
+          action.payload && action.payload.data
+            ? action.payload.data
+            : action.payload;
+        if (created) {
+          // if API returns wrapper with data array, handle accordingly
+          if (Array.isArray(created))
+            state.schedules = [...created, ...state.schedules];
+          else state.schedules.unshift(created);
+        }
       })
       .addCase(createSchedule.rejected, (state, action) => {
         state.createStatus = "failed";

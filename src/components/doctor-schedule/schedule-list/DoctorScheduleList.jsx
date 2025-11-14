@@ -1,6 +1,75 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchSchedules,
+  selectSchedules,
+  selectSchedulesStatus,
+} from "../../../features/doctorScheduleSlice";
 
 export default function DoctorScheduleList() {
+  const dispatch = useDispatch();
+  const schedules = useSelector(selectSchedules);
+  const schedulesStatus = useSelector(selectSchedulesStatus);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  // Fetch schedules on mount
+  useEffect(() => {
+    dispatch(fetchSchedules());
+  }, [dispatch]);
+
+  // Show bootstrap modal when a schedule is selected
+  useEffect(() => {
+    if (!selectedSchedule) return;
+    const viewModalEl = document.getElementById("viewModal");
+    if (!viewModalEl) return;
+
+    let modalInstance = null;
+    try {
+      if (window.bootstrap && typeof window.bootstrap.Modal === "function") {
+        modalInstance = new window.bootstrap.Modal(viewModalEl);
+        modalInstance.show();
+      } else {
+        viewModalEl.style.display = "block";
+        viewModalEl.classList.add("show");
+        document.body.classList.add("modal-open");
+        const backdrop = document.createElement("div");
+        backdrop.className = "modal-backdrop fade show";
+        backdrop.setAttribute("data-react-backdrop", "1");
+        document.body.appendChild(backdrop);
+      }
+    } catch (err) {
+      console.error("Error showing modal:", err);
+    }
+
+    const cleanup = () => {
+      try {
+        if (modalInstance) modalInstance.hide();
+        else {
+          viewModalEl.style.display = "none";
+          viewModalEl.classList.remove("show");
+          document.body.classList.remove("modal-open");
+          document
+            .querySelectorAll(".modal-backdrop[data-react-backdrop]")
+            .forEach((b) => b.remove());
+        }
+      } catch (err) {
+        console.error("Error hiding modal during cleanup:", err);
+      }
+      setSelectedSchedule(null);
+    };
+
+    const closeBtn = viewModalEl.querySelector(".btn-close");
+    if (closeBtn) closeBtn.onclick = cleanup;
+    viewModalEl.addEventListener &&
+      viewModalEl.addEventListener("hidden.bs.modal", cleanup);
+
+    return () => {
+      if (closeBtn) closeBtn.onclick = null;
+      viewModalEl.removeEventListener &&
+        viewModalEl.removeEventListener("hidden.bs.modal", cleanup);
+      if (modalInstance) modalInstance.hide();
+    };
+  }, [selectedSchedule]);
+
   useEffect(() => {
     const searchInput = document.getElementById("searchInput");
     const departmentFilter = document.getElementById("departmentFilter");
@@ -33,257 +102,38 @@ export default function DoctorScheduleList() {
       countDisplay.textContent = count;
     }
 
-    searchInput.addEventListener("keyup", filterTable);
-    departmentFilter.addEventListener("change", filterTable);
+    searchInput && searchInput.addEventListener("keyup", filterTable);
+    departmentFilter &&
+      departmentFilter.addEventListener("change", filterTable);
 
-    // View Button
-    const viewButtons = document.querySelectorAll(".view-btn");
-    viewButtons.forEach((btn) =>
-      btn.addEventListener("click", (e) => {
-        const row = e.target.closest("tr");
-        const doctorName = row.cells[0].textContent;
-        let schedules = [];
-
-        if (doctorName === "Dr. Anita Sharma") {
-          schedules = [
-            {
-              day: "Monday",
-              availableFrom: "09:00 AM",
-              availableTo: "12:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Tuesday",
-              availableFrom: "10:00 AM",
-              availableTo: "01:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Wednesday",
-              availableFrom: "09:30 AM",
-              availableTo: "12:30 PM",
-              status: "Active",
-            },
-            {
-              day: "Thursday",
-              availableFrom: "11:00 AM",
-              availableTo: "02:00 PM",
-              status: "Inactive",
-            },
-            {
-              day: "Friday",
-              availableFrom: "09:00 AM",
-              availableTo: "12:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Saturday",
-              availableFrom: "10:00 AM",
-              availableTo: "01:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Sunday",
-              availableFrom: "Off",
-              availableTo: "Off",
-              status: "Inactive",
-            },
-          ];
-        } else if (doctorName === "Dr. Rajiv Mehta") {
-          schedules = [
-            {
-              day: "Monday",
-              availableFrom: "02:00 PM",
-              availableTo: "05:00 PM",
-              status: "Inactive",
-            },
-            {
-              day: "Tuesday",
-              availableFrom: "03:00 PM",
-              availableTo: "06:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Wednesday",
-              availableFrom: "02:00 PM",
-              availableTo: "05:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Thursday",
-              availableFrom: "03:00 PM",
-              availableTo: "06:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Friday",
-              availableFrom: "02:00 PM",
-              availableTo: "05:00 PM",
-              status: "Inactive",
-            },
-            {
-              day: "Saturday",
-              availableFrom: "03:00 PM",
-              availableTo: "06:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Sunday",
-              availableFrom: "Off",
-              availableTo: "Off",
-              status: "Inactive",
-            },
-          ];
-        } else if (doctorName === "Dr. Seema Patel") {
-          schedules = [
-            {
-              day: "Monday",
-              availableFrom: "11:00 AM",
-              availableTo: "02:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Tuesday",
-              availableFrom: "Off",
-              availableTo: "Off",
-              status: "Inactive",
-            },
-            {
-              day: "Wednesday",
-              availableFrom: "11:00 AM",
-              availableTo: "02:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Thursday",
-              availableFrom: "01:00 PM",
-              availableTo: "04:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Friday",
-              availableFrom: "11:00 AM",
-              availableTo: "02:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Saturday",
-              availableFrom: "01:00 PM",
-              availableTo: "04:00 PM",
-              status: "Active",
-            },
-            {
-              day: "Sunday",
-              availableFrom: "Off",
-              availableTo: "Off",
-              status: "Inactive",
-            },
-          ];
-        }
-
-        let content = `<h6>Schedules for ${doctorName}</h6>`;
-        content += `<div class="table-responsive">
-                      <table class="table table-bordered table-sm">
-                        <thead class="table-secondary">
-                          <tr>
-                            <th>Day</th>
-                            <th>Available From</th>
-                            <th>Available To</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>`;
-        schedules.forEach((s) => {
-          content += `<tr>
-                        <td>${s.day}</td>
-                        <td>${s.availableFrom}</td>
-                        <td>${s.availableTo}</td>
-                        <td>${s.status}</td>
-                      </tr>`;
-        });
-        content += `</tbody></table></div>`;
-
-        const viewContentEl = document.getElementById("viewContent");
-        const viewModalEl = document.getElementById("viewModal");
-        if (viewContentEl && viewModalEl) {
-          viewContentEl.innerHTML = content;
-
-          // Create modal instance and show it. Keep a reference to hide/cleanup later.
-          let modalInstance = null;
-          try {
-            if (
-              window.bootstrap &&
-              typeof window.bootstrap.Modal === "function"
-            ) {
-              modalInstance = new window.bootstrap.Modal(viewModalEl);
-              modalInstance.show();
-            } else {
-              // Fallback: toggle classes manually (if bootstrap JS unavailable)
-              viewModalEl.style.display = "block";
-              viewModalEl.classList.add("show");
-              document.body.classList.add("modal-open");
-              const backdrop = document.createElement("div");
-              backdrop.className = "modal-backdrop fade show";
-              document.body.appendChild(backdrop);
-            }
-          } catch (err) {
-            console.error("Error showing modal:", err);
-          }
-
-          // Ensure close button hides modal and cleans up content/backdrop
-          const closeBtn = viewModalEl.querySelector(".btn-close");
-          if (closeBtn) {
-            closeBtn.onclick = () => {
-              try {
-                if (modalInstance) modalInstance.hide();
-                else {
-                  viewModalEl.style.display = "none";
-                  viewModalEl.classList.remove("show");
-                  document.body.classList.remove("modal-open");
-                  document
-                    .querySelectorAll(".modal-backdrop")
-                    .forEach((b) => b.remove());
-                }
-              } catch (err) {
-                console.error("Error hiding modal on close click:", err);
-              }
-              // clear content when closed
-              if (viewContentEl) viewContentEl.innerHTML = "";
-            };
-          }
-
-          // Cleanup when modal is fully hidden
-          if (viewModalEl) {
-            viewModalEl.addEventListener("hidden.bs.modal", () => {
-              if (viewContentEl) viewContentEl.innerHTML = "";
-              document
-                .querySelectorAll(".modal-backdrop")
-                .forEach((b) => b.remove());
-            });
-          }
-        }
-      })
-    );
-
-    // Delete Button
-    const deleteButtons = document.querySelectorAll(".delete-btn");
-    deleteButtons.forEach((btn) =>
-      btn.addEventListener("click", (e) => {
+    // Use event delegation on table body for actions (delete/edit/view handled separately)
+    const tableClickHandler = (e) => {
+      const deleteBtn = e.target.closest(".delete-btn");
+      if (deleteBtn) {
         if (window.confirm("Are you sure you want to delete this schedule?")) {
-          e.target.closest("tr").remove();
+          const row = deleteBtn.closest("tr");
+          row && row.remove();
           filterTable();
         }
-      })
-    );
+        return;
+      }
 
-    // Edit Button
-    const editButtons = document.querySelectorAll(".edit-btn");
-    editButtons.forEach((btn) =>
-      btn.addEventListener("click", () => {
+      const editBtn = e.target.closest(".edit-btn");
+      if (editBtn) {
         alert("Edit functionality can be linked to your form page.");
-      })
-    );
-  }, []);
+        return;
+      }
+    };
+
+    tableBody && tableBody.addEventListener("click", tableClickHandler);
+
+    return () => {
+      searchInput && searchInput.removeEventListener("keyup", filterTable);
+      departmentFilter &&
+        departmentFilter.removeEventListener("change", filterTable);
+      tableBody && tableBody.removeEventListener("click", tableClickHandler);
+    };
+  }, [schedulesStatus]);
 
   return (
     <div className="full-width-card card shadow-lg border-0">
@@ -352,55 +202,71 @@ export default function DoctorScheduleList() {
               </tr>
             </thead>
             <tbody id="tableBody">
-              {[
-                {
-                  name: "Dr. Anita Sharma",
-                  spec: "Pediatrician",
-                  fee: "₹500",
-                  active: true,
-                },
-                {
-                  name: "Dr. Rajiv Mehta",
-                  spec: "Cardiologist",
-                  fee: "₹800",
-                  active: false,
-                },
-                {
-                  name: "Dr. Seema Patel",
-                  spec: "Dermatologist",
-                  fee: "₹600",
-                  active: true,
-                },
-              ].map((doc, i) => (
-                <tr key={i}>
-                  <td>{doc.name}</td>
-                  <td>{doc.spec}</td>
-                  <td>{doc.fee}</td>
-                  <td>
-                    <select
-                      className="form-select form-select-sm status"
-                      defaultValue={doc.active ? "Active" : "Inactive"}
-                    >
-                      <option>Active</option>
-                      <option>Inactive</option>
-                    </select>
-                  </td>
-                  <td className="text-end">
-                    <button className="btn btn-sm btn-outline-secondary view-btn">
-                      <i className="bi bi-eye"></i>
-                    </button>{" "}
-                    <button
-                      className="btn btn-sm text-white edit-btn"
-                      style={{ backgroundColor: "#01C0C8" }}
-                    >
-                      <i className="bi bi-pencil"></i>
-                    </button>{" "}
-                    <button className="btn btn-sm btn-outline-danger delete-btn">
-                      <i className="bi bi-trash"></i>
-                    </button>
+              {schedulesStatus === "loading" && (
+                <tr>
+                  <td colSpan="5" className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              )}
+              {schedulesStatus === "succeeded" &&
+                schedules &&
+                schedules.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="text-center py-4 text-muted">
+                      No schedules found
+                    </td>
+                  </tr>
+                )}
+              {schedulesStatus === "succeeded" &&
+                schedules &&
+                schedules.map((schedule, i) => (
+                  <tr key={schedule.id || i}>
+                    <td>
+                      {schedule.doctorName || schedule.doctor?.name || "N/A"}
+                    </td>
+                    <td>
+                      {schedule.departmentName ||
+                        schedule.department?.name ||
+                        schedule.specialization ||
+                        "N/A"}
+                    </td>
+                    <td>₹{schedule.appointmentFees || schedule.fees || 0}</td>
+                    <td>
+                      <select
+                        className="form-select form-select-sm status"
+                        defaultValue={
+                          schedule.status || schedule.active
+                            ? "Active"
+                            : "Inactive"
+                        }
+                      >
+                        <option>Active</option>
+                        <option>Inactive</option>
+                      </select>
+                    </td>
+                    <td className="text-end">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary view-btn"
+                        onClick={() => setSelectedSchedule(schedule)}
+                      >
+                        <i className="bi bi-eye"></i>
+                      </button>{" "}
+                      <button
+                        className="btn btn-sm text-white edit-btn"
+                        style={{ backgroundColor: "#01C0C8" }}
+                      >
+                        <i className="bi bi-pencil"></i>
+                      </button>{" "}
+                      <button className="btn btn-sm btn-outline-danger delete-btn">
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -421,7 +287,49 @@ export default function DoctorScheduleList() {
                 data-bs-dismiss="modal"
               ></button>
             </div>
-            <div className="modal-body" id="viewContent"></div>
+            <div className="modal-body" id="viewContent">
+              {selectedSchedule ? (
+                <div>
+                  <h6>Schedules for {selectedSchedule.doctorName}</h6>
+                  <p>
+                    <strong>Department:</strong>{" "}
+                    {selectedSchedule.departmentName ||
+                      selectedSchedule.department?.name ||
+                      "-"}
+                  </p>
+                  <p>
+                    <strong>Fees:</strong> ₹
+                    {selectedSchedule.appointmentFees ??
+                      selectedSchedule.fees ??
+                      0}
+                  </p>
+                  <div className="table-responsive">
+                    <table className="table table-bordered table-sm">
+                      <thead className="table-secondary">
+                        <tr>
+                          <th>Day</th>
+                          <th>Start</th>
+                          <th>End</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(selectedSchedule.weeklySchedule || []).map(
+                          (s, idx) => (
+                            <tr key={idx}>
+                              <td>{s.day}</td>
+                              <td>{s.startTime || "Off"}</td>
+                              <td>{s.endTime || "Off"}</td>
+                            </tr>
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div />
+              )}
+            </div>
           </div>
         </div>
       </div>
