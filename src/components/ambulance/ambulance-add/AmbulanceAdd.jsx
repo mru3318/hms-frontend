@@ -1,4 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchAmbulanceFormData,
+  selectAmbulanceFormData,
+  selectAmbulanceFormDataStatus,
+  addAmbulance,
+  selectAddAmbulanceStatus,
+  selectAddAmbulanceError,
+} from "../../../features/ambulanceSlice";
+import Swal from "sweetalert2";
 
 const AmbulanceAdd = () => {
   const [formData, setFormData] = useState({
@@ -10,14 +20,57 @@ const AmbulanceAdd = () => {
 
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const dispatch = useDispatch();
 
-  const ambulanceTypes = [
-    "Basic Life Support (BLS)",
-    "Advanced Life Support (ALS)",
-    "Patient Transport Vehicle",
-  ];
+  const formDataOptions = useSelector(selectAmbulanceFormData) || {};
+  const formDataStatus = useSelector(selectAmbulanceFormDataStatus);
 
-  const ambulanceStatuses = ["Available", "In Use", "Maintenance"];
+  // Use backend enum values as fallbacks to avoid validation errors
+  const fallbackTypes = ["BASIC", "ICU"];
+
+  const fallbackStatuses = ["AVAILABLE", "ON_DUTY", "MAINTENANCE"];
+
+  const ambulanceTypes =
+    formDataOptions.types && formDataOptions.types.length
+      ? formDataOptions.types
+      : fallbackTypes;
+
+  const ambulanceStatuses =
+    formDataOptions.statuses && formDataOptions.statuses.length
+      ? formDataOptions.statuses
+      : fallbackStatuses;
+
+  // Normalize options to { value, label } regardless of backend shape
+  const normalizeOptions = (arr) => {
+    if (!Array.isArray(arr)) return [];
+    return arr.map((item) => {
+      if (item && typeof item === "object") {
+        const label = item.name || item.label || item.type || String(item);
+        const value = item.id ?? item.value ?? label;
+        return { value, label };
+      }
+      return { value: String(item), label: String(item) };
+    });
+  };
+
+  const typeOptions = normalizeOptions(ambulanceTypes);
+  const statusOptions = normalizeOptions(ambulanceStatuses);
+
+  useEffect(() => {
+    if (formDataStatus === "idle") dispatch(fetchAmbulanceFormData());
+  }, [dispatch, formDataStatus]);
+
+  const addStatus = useSelector(selectAddAmbulanceStatus);
+  const addError = useSelector(selectAddAmbulanceError);
+
+  const formatError = (err) => {
+    if (!err) return null;
+    if (typeof err === "string") return err;
+    if (typeof err.message === "string") return err.message;
+    if (err.message && typeof err.message === "object")
+      return JSON.stringify(err.message);
+    return JSON.stringify(err);
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -35,16 +88,71 @@ const AmbulanceAdd = () => {
       formData.ambulanceStatus &&
       formData.lastMaintenanceDate
     ) {
-      setSuccess("Ambulance added successfully!");
-      setError("");
-      console.log("Form Data:", formData);
-      setFormData({
-        vehicleNumber: "",
-        ambulanceType: "",
-        ambulanceStatus: "",
-        lastMaintenanceDate: "",
-      });
-      setTimeout(() => setSuccess(""), 2000);
+      // normalize status to backend enum values (trim & map variants)
+      const normalizeStatus = (s) => {
+        if (!s) return s;
+        const raw = String(s).trim();
+        if (["AVAILABLE", "ON_DUTY", "MAINTENANCE"].includes(raw)) return raw;
+        const v = raw.toLowerCase();
+        if (v === "available") return "AVAILABLE";
+        if (["in use", "inuse", "on duty", "onduty", "on_duty"].includes(v))
+          return "ON_DUTY";
+        if (v.includes("maint")) return "MAINTENANCE";
+        return raw.toUpperCase();
+      };
+
+      // normalize type to backend enum values
+      const normalizeType = (t) => {
+        if (!t) return t;
+        if (t === "BASIC" || t === "ICU") return t;
+        const v = String(t).trim().toLowerCase();
+        if (v.includes("icu")) return "ICU";
+        if (v.includes("basic") || v.includes("bls") || v.includes("life"))
+          return "BASIC";
+        // fallback: uppercase single word
+        return String(t).toUpperCase();
+      };
+
+      const payload = {
+        ...formData,
+        ambulanceStatus: normalizeStatus(formData.ambulanceStatus),
+        ambulanceType: normalizeType(formData.ambulanceType),
+      };
+      console.debug("Submitting ambulance payload", payload);
+
+      // dispatch addAmbulance
+      dispatch(addAmbulance(payload))
+        .unwrap()
+        .then(() => {
+          setSuccess("Ambulance added successfully!");
+          setError("");
+          setFormData({
+            vehicleNumber: "",
+            ambulanceType: "",
+            ambulanceStatus: "",
+            lastMaintenanceDate: "",
+          });
+          Swal.fire({
+            icon: "success",
+            title: "Saved",
+            text: "Ambulance added successfully",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+          setTimeout(() => setSuccess(""), 2000);
+        })
+        .catch((err) => {
+          // backend error shape may vary
+          const msg = err?.message || err?.error || JSON.stringify(err);
+          setError(msg || "Failed to add ambulance.");
+          setSuccess("");
+          Swal.fire({
+            icon: "error",
+            title: "Failed",
+            text: formatError(err) || "Failed to add ambulance",
+          });
+          setTimeout(() => setError(""), 3000);
+        });
     } else {
       setError("Please fill all required fields.");
       setSuccess("");
@@ -68,7 +176,34 @@ const AmbulanceAdd = () => {
         {success && <div className="alert alert-success">{success}</div>}
 
         {/* Error Message */}
-        {error && <div className="alert alert-danger">{error}</div>}
+        {error && (
+          <div className="alert alert-danger">{formatError(error)}</div>
+        )}
+        {addError && (
+          <div className="alert alert-danger">
+            {Array.isArray(addError) ? (
+              <ul className="mb-0">
+                {addError.map((err, idx) => (
+                  <li key={idx}>
+                    {err.field ? `${err.field}: ` : ""}
+                    {err.message || String(err)}
+                  </li>
+                ))}
+              </ul>
+            ) : Array.isArray(addError?.message) ? (
+              <ul className="mb-0">
+                {addError.message.map((err, idx) => (
+                  <li key={idx}>
+                    {err.field ? `${err.field}: ` : ""}
+                    {err.message || String(err)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              formatError(addError)
+            )}
+          </div>
+        )}
 
         {/* FORM */}
         <form onSubmit={handleSubmit}>
@@ -101,12 +236,20 @@ const AmbulanceAdd = () => {
                 onChange={handleChange}
                 required
               >
-                <option value="">-- Select Ambulance Type --</option>
-                {ambulanceTypes.map((type, index) => (
-                  <option key={index} value={type}>
-                    {type}
+                {formDataStatus === "loading" ? (
+                  <option value="" disabled>
+                    Loading types...
                   </option>
-                ))}
+                ) : (
+                  <>
+                    <option value="">-- Select Ambulance Type --</option>
+                    {typeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
 
@@ -122,12 +265,20 @@ const AmbulanceAdd = () => {
                 onChange={handleChange}
                 required
               >
-                <option value="">Select Status</option>
-                {ambulanceStatuses.map((status, index) => (
-                  <option key={index} value={status}>
-                    {status}
+                {formDataStatus === "loading" ? (
+                  <option value="" disabled>
+                    Loading statuses...
                   </option>
-                ))}
+                ) : (
+                  <>
+                    <option value="">Select Status</option>
+                    {statusOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
 
@@ -148,8 +299,12 @@ const AmbulanceAdd = () => {
 
             {/* Submit Button */}
             <div className="col-12 text-center mt-4">
-              <button type="submit" className="btn btn-primary btn-lg px-4">
-                Save
+              <button
+                type="submit"
+                className="btn btn-primary btn-lg px-4"
+                disabled={addStatus === "loading"}
+              >
+                {addStatus === "loading" ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
