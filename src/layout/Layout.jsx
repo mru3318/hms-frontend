@@ -420,9 +420,12 @@ const Layout = () => {
                     </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink
+                      className="nav-link"
+                      to="view-doctor-schedule-list"
+                    >
                       View Schedule{" "}
-                    </a>
+                    </NavLink>
                   </li>
                 </ul>
               </div>
@@ -625,7 +628,7 @@ const Layout = () => {
                       className="nav-link"
                       to="manage-death-certificates"
                     >
-                      Manage Death Certificates
+                      Manage Birth Certificates
                     </NavLink>
                   </li>
                 </ul>
@@ -682,154 +685,9 @@ const Layout = () => {
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#invtMenu"
-                      aria-expanded="false"
-                      aria-controls="invtMenu"
-                    >
+                    <NavLink className="nav-link" to="pharmacy-module">
                       Inventory
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="invtMenu"
-                      data-bs-parent="#pharmacy"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <a href="#" className="nav-link">
-                          Add Medicine Stock
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Manage Stock
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-                  <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#prsMenu"
-                      aria-expanded="false"
-                      aria-controls="prsMenu"
-                    >
-                      Prescriptions
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="prsMenu"
-                      data-bs-parent="#pharmacy"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <a href="Prescription-Table.html" className="nav-link">
-                          Manage Prescriptions
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-                  <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#billMenu"
-                      aria-expanded="false"
-                      aria-controls="billMenu"
-                    >
-                      Billing
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="billMenu"
-                      data-bs-parent="#pharmacy"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <a href="#" className="nav-link">
-                          Generate Bill
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Manage Bills
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-                  <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#ordMenu"
-                      aria-expanded="false"
-                      aria-controls="ordMenu"
-                    >
-                      Orders
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="ordMenu"
-                      data-bs-parent="#pharmacy"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <a href="#" className="nav-link">
-                          Internal Requisitions
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          External Supplier Orders
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Manage Orders
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-                  <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#repMenu"
-                      aria-expanded="false"
-                      aria-controls="repMenu"
-                    >
-                      Reports
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="repMenu"
-                      data-bs-parent="#pharmacy"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <a href="#" className="nav-link">
-                          Stock Report
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Dispensed Medicine Report
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Returned Medicine Report
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Revenue Report
-                        </a>
-                      </li>
-                    </ul>
+                    </NavLink>
                   </li>
                 </ul>
               </div>
