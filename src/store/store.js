@@ -8,6 +8,7 @@ import assetsReducer from "../features/assetsSlice";
 import healthPackageReducer from "../features/healthPackageSlice";
 import birthAndDethReducer from "../features/birthAndDethSlice";
 import doctorScheduleReducer from "../features/doctorScheduleSlice";
+import bedReducer from "../features/bedSlice";
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
     healthPackages: healthPackageReducer,
     birthAndDeth: birthAndDethReducer,
     doctorSchedule: doctorScheduleReducer,
+    beds: bedReducer,
   },
 });
 

@@ -52,7 +52,7 @@ const AddRoom = () => {
   };
 
   return (
-    <div className="container my-4 p-0 m-0">
+    <div className="container-fluid  p-0 m-0">
       <div className="card-border shadow-sm border rounded">
         {/* Header */}
         <div className="card-header bg-light d-flex justify-content-center align-items-center">
@@ -63,40 +63,39 @@ const AddRoom = () => {
         </div>
 
         {/* Success / Error Alerts */}
-        <div className="container-fluid mt-4">
-          {success && (
-            <div
-              className="alert alert-success alert-dismissible fade show"
-              role="alert"
-            >
-              <i className="fa-solid fa-circle-check me-1"></i>
-              Room added successfully!
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setSuccess(false)}
-              ></button>
-            </div>
-          )}
 
-          {error && (
-            <div
-              className="alert alert-danger alert-dismissible fade show"
-              role="alert"
-            >
-              <i className="fa-solid fa-triangle-exclamation me-1"></i>
-              Something went wrong! Please fill all required fields.
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setError(false)}
-              ></button>
-            </div>
-          )}
-        </div>
+        {success && (
+          <div
+            className="alert alert-success alert-dismissible fade show"
+            role="alert"
+          >
+            <i className="fa-solid fa-circle-check me-1"></i>
+            Room added successfully!
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() => setSuccess(false)}
+            ></button>
+          </div>
+        )}
+
+        {error && (
+          <div
+            className="alert alert-danger alert-dismissible fade show"
+            role="alert"
+          >
+            <i className="fa-solid fa-triangle-exclamation me-1"></i>
+            Something went wrong! Please fill all required fields.
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() => setError(false)}
+            ></button>
+          </div>
+        )}
 
         {/* Form */}
-        <form className="container-fluid mt-3" onSubmit={handleSubmit}>
+        <form className="container-fluid " onSubmit={handleSubmit}>
           {/* Room No */}
           <div className="mb-3">
             <label htmlFor="roomNo" className="form-label">

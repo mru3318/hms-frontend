@@ -41,7 +41,7 @@ const AmbulanceDashboard = () => {
   }, [activeTab]);
 
   return (
-    <div className="container-fluid mt-5 ambulance-dashboard">
+    <div className="  ambulance-dashboard">
       {/* ============================ */}
       {/* Title Bar Section */}
       {/* ============================ */}

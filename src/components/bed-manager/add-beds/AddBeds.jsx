@@ -26,7 +26,7 @@ const AddBeds = () => {
   };
 
   return (
-    <div className="container my-4 p-0 m-0">
+    <div className="container-fluid my-4 p-0 m-0">
       <div className="card-border shadow-sm border rounded">
         {/* Header */}
         <div className="card-header bg-light d-flex justify-content-center align-items-center">
@@ -68,7 +68,7 @@ const AddBeds = () => {
         )}
 
         {/* Add Bed Form */}
-        <div className="container-fluid my-4">
+        <div className="container-fluid ">
           <form onSubmit={handleSubmit}>
             <div className="row">
               {/* Bed Number */}
@@ -92,25 +92,44 @@ const AddBeds = () => {
               </div>
 
               {/* Room Type */}
-              <div className="col-md-6 mb-3">
-                <label htmlFor="roomType" className="form-label fw-semibold">
-                  Room <span className="text-danger">*</span>
-                </label>
-                <select
-                  id="roomType"
-                  name="roomId"
-                  className="form-select"
-                  value={roomType}
-                  onChange={(e) => setRoomType(e.target.value)}
-                  required
-                >
-                  <option value="">-- Select Room Type --</option>
-                  <option value="1">ICU Room</option>
-                  <option value="2">General Ward</option>
-                  <option value="3">Private Room</option>
-                </select>
-                <div className="invalid-feedback">
-                  Please select a room type.
+              <div className="row mb-3">
+                <div className="col-md-6 ">
+                  <label htmlFor="roomType" className="form-label fw-semibold">
+                    Room <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    id="roomType"
+                    name="roomId"
+                    className="form-select"
+                    value={roomType}
+                    onChange={(e) => setRoomType(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Select Room Type --</option>
+                    <option value="1">ICU Room</option>
+                    <option value="2">General Ward</option>
+                    <option value="3">Private Room</option>
+                  </select>
+                  <div className="invalid-feedback">
+                    Please select a room type.
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label htmlFor="roomType" className="form-label">
+                    Status <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    className="form-select"
+                    id="roomType"
+                    name="roomType"
+                    required
+                  >
+                    <option value="">-- Select Status --</option>
+                    <option>Accupied</option>
+                    <option>ICU</option>
+                    <option>Private Room</option>
+                    <option>Deluxe Room</option>
+                  </select>
                 </div>
               </div>
             </div>

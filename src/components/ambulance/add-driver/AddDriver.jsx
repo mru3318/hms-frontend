@@ -33,7 +33,7 @@ const AddDriver = () => {
   };
 
   return (
-    <div className="container my-4 p-0 m-0">
+    <div className="container-fluid my-4 p-0 m-0">
       {/* Header */}
       <div className="card-border">
         <div className="card-header d-flex justify-content-center align-items-center bg-info text-white rounded-top">
@@ -45,7 +45,7 @@ const AddDriver = () => {
       </div>
 
       {/* Form */}
-      <form className="container-fluid my-4" onSubmit={handleSubmit}>
+      <form className=" p-4" onSubmit={handleSubmit}>
         <div className="row mb-4">
           {/* Driver Name */}
           <div className="col-md-6 mb-3">

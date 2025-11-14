@@ -2,7 +2,7 @@ h4 {
   font-weight: 600;
 }
 
-.ambulance-dashboard .nav-tabs .nav-link.active {
+/* .ambulance-dashboard .nav-tabs .nav-link.active {
   background-color: #f8892f;
   color: white !important;
   font-weight: 500;
@@ -16,16 +16,18 @@ h4 {
 .ambulance-dashboard .nav-tabs .nav-link:hover {
   background-color: #f3d5bc;
 }
-.ambulance-dashboard .heading {
-  background-color: #01c0c8;
-}
+
 
 .ambulance-dashboard .button {
   background-color: #f8892f;
 }
-
+*/
 .ambulance-dashboard .font-size {
   font-size: 28px;
+}
+
+.ambulance-dashboard .heading {
+  background-color: #01c0c8;
 }
 
 .ambulance-dashboard .header {

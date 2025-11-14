@@ -45,7 +45,7 @@ const BedList = () => {
   };
 
   return (
-    <div className="container my-4 p-0 m-0">
+    <div className="container-fluid my-4 p-0 m-0">
       <div className="card-border border rounded shadow-sm">
         {/* Header */}
         <div className="card-header d-flex justify-content-between align-items-center bg-light">
@@ -90,7 +90,7 @@ const BedList = () => {
         )}
 
         {/* Table */}
-        <div class="container">
+        <div class="container-fluid">
           <div className="card-body">
             <div className="table-responsive">
               <table className="table table-sm table-striped table-bordered align-middle">
