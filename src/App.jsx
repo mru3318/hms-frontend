@@ -41,6 +41,10 @@ import EditDeathCertificateForm from "./components/reports/edit-death-certificat
 import PharmacyModule from "./components/pharmacy/PharmacyModule";
 import DoctorScheduleList from "./components/doctor-schedule/schedule-list/DoctorScheduleList";
 import EditDoctorSchedule from "./components/doctor-schedule/edit-doctor-schedule/EditDoctorSchedule";
+import AmbulanceTable from "./components/ambulance/ambulance-table/AmbulanceTable";
+import DriverTable from "./components/ambulance/driver-table/DriverTable";
+import AssignmentTable from "./components/ambulance/assignment-table/AssignmentTable";
+import ViewAmbulanceAssignmentCompletedTable from "./components/ambulance/view-ambulance-assignment-complited-table/ViewAmbulanceAssignmentCompletedTable";
 
 function App() {
   const router = createBrowserRouter([

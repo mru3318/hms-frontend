@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "./AmbulanceDashboard.css";
+import AmbulanceTable from "../ambulance-table/AmbulanceTable";
+import DriverTable from "../driver-table/DriverTable";
+import AssignmentTable from "../assignment-table/AssignmentTable";
+import ViewAmbulanceAssignmentCompletedTable from "../view-ambulance-assignment-complited-table/ViewAmbulanceAssignmentCompletedTable";
 
 const AmbulanceDashboard = () => {
   const [activeTab, setActiveTab] = useState("ambulance");
@@ -7,15 +11,20 @@ const AmbulanceDashboard = () => {
 
   // Fetch content from backend when tab changes
   useEffect(() => {
+    // For the ambulance, driver, assignment and assignmentHistory tabs we render React components directly
+    if (
+      activeTab === "ambulance" ||
+      activeTab === "driver" ||
+      activeTab === "assignment" ||
+      activeTab === "assignmentHistory"
+    ) {
+      setTabData(null);
+      return;
+    }
+
     const fetchData = async () => {
       let url = "";
       switch (activeTab) {
-        case "ambulance":
-          url = "/ambulance/list";
-          break;
-        case "driver":
-          url = "/driver/list";
-          break;
         case "assignment":
           url = "/assignment/list";
           break;
@@ -104,10 +113,28 @@ const AmbulanceDashboard = () => {
         {/* Tab Content */}
         {/* ============================ */}
         <div className="tab-content mt-3">
-          <div
-            className="tab-pane fade show active"
-            dangerouslySetInnerHTML={{ __html: tabData }}
-          />
+          {activeTab === "ambulance" ? (
+            <div className="tab-pane fade show active">
+              <AmbulanceTable />
+            </div>
+          ) : activeTab === "driver" ? (
+            <div className="tab-pane fade show active">
+              <DriverTable />
+            </div>
+          ) : activeTab === "assignment" ? (
+            <div className="tab-pane fade show active">
+              <AssignmentTable />
+            </div>
+          ) : activeTab === "assignmentHistory" ? (
+            <div className="tab-pane fade show active">
+              <ViewAmbulanceAssignmentCompletedTable />
+            </div>
+          ) : (
+            <div
+              className="tab-pane fade show active"
+              dangerouslySetInnerHTML={{ __html: tabData }}
+            />
+          )}
         </div>
       </div>
     </div>
