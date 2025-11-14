@@ -31,7 +31,7 @@ export const fetchAmbulances = createAsyncThunk(
   "ambulance/fetchAmbulances",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await api.get("/ambulance");
+      const res = await api.get("/ambulance/list");
       return res.data;
     } catch (err) {
       const payload = err.response

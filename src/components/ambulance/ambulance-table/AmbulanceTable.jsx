@@ -1,30 +1,23 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchAmbulances,
+  selectAmbulances,
+  selectAmbulancesStatus,
+  selectAmbulancesError,
+} from "../../../features/ambulanceSlice";
 
 const AmbulanceTable = () => {
-  // Dummy data
-  const ambulances = [
-    {
-      id: 1,
-      vehicleNumber: "MH31 AB 1234",
-      ambulanceType: "Basic Life Support",
-      ambulanceStatus: "Active",
-      lastMaintenanceDate: "2025-02-10",
-    },
-    {
-      id: 2,
-      vehicleNumber: "MH31 XY 5678",
-      ambulanceType: "Advanced Life Support",
-      ambulanceStatus: "Inactive",
-      lastMaintenanceDate: "2025-01-25",
-    },
-    {
-      id: 3,
-      vehicleNumber: "MH31 PQ 9988",
-      ambulanceType: "Patient Transport",
-      ambulanceStatus: "Active",
-      lastMaintenanceDate: "2025-03-01",
-    },
-  ];
+  const dispatch = useDispatch();
+  const ambulances = useSelector(selectAmbulances) || [];
+  const status = useSelector(selectAmbulancesStatus);
+  const error = useSelector(selectAmbulancesError);
+
+  useEffect(() => {
+    if (status === "idle") {
+      dispatch(fetchAmbulances());
+    }
+  }, [dispatch, status]);
 
   return (
     <table className="table table-bordered table-striped">
@@ -39,33 +32,52 @@ const AmbulanceTable = () => {
       </thead>
 
       <tbody>
-        {ambulances && ambulances.length > 0 ? (
-          ambulances.map((amb, index) => (
-            <tr key={amb.id || index}>
-              <td>{index + 1}</td>
-              <td>{amb.vehicleNumber}</td>
-              <td>{amb.ambulanceType}</td>
-              <td>
-                <span
-                  className={`badge ${
-                    amb.ambulanceStatus === "Active"
-                      ? "bg-success"
-                      : "bg-danger"
-                  }`}
-                >
-                  {amb.ambulanceStatus}
-                </span>
-              </td>
-              <td>{amb.lastMaintenanceDate}</td>
-            </tr>
-          ))
-        ) : (
+        {status === "loading" && (
           <tr>
             <td colSpan="5" className="text-center">
-              No ambulance records found.
+              Loading ambulances...
             </td>
           </tr>
         )}
+        {status === "failed" && (
+          <tr>
+            <td colSpan="5" className="text-center text-danger">
+              {typeof error === "string"
+                ? error
+                : error?.message || "Failed to load ambulances"}
+            </td>
+          </tr>
+        )}
+        {(status === "succeeded" || status === "idle") &&
+          (ambulances && ambulances.length > 0 ? (
+            ambulances.map((amb, index) => (
+              <tr key={amb.id || amb.ambulanceId || index}>
+                <td>{index + 1}</td>
+                <td>{amb.vehicleNumber}</td>
+                <td>{amb.ambulanceType}</td>
+                <td>
+                  <span
+                    className={`badge ${
+                      amb.ambulanceStatus === "AVAILABLE"
+                        ? "bg-success"
+                        : amb.ambulanceStatus === "ON_DUTY"
+                        ? "bg-warning text-dark"
+                        : "bg-secondary"
+                    }`}
+                  >
+                    {amb.ambulanceStatus}
+                  </span>
+                </td>
+                <td>{amb.lastMaintenanceDate}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="5" className="text-center">
+                No ambulance records found.
+              </td>
+            </tr>
+          ))}
       </tbody>
     </table>
   );
