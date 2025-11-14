@@ -19,6 +19,20 @@ export const fetchSchedules = createAsyncThunk(
   }
 );
 
+// Fetch all departments for doctor schedule
+export const fetchDepartments = createAsyncThunk(
+  "doctorSchedule/fetchDepartments",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/doctor-schedule/departments");
+      return res.data;
+    } catch (err) {
+      const message = err.response?.data || err.message || "Network error";
+      return rejectWithValue(message);
+    }
+  }
+);
+
 // Create a new schedule
 export const createSchedule = createAsyncThunk(
   "doctorSchedule/createSchedule",
@@ -69,6 +83,9 @@ const initialState = {
   schedules: [],
   status: "idle",
   error: null,
+  departments: [],
+  departmentsStatus: "idle",
+  departmentsError: null,
   createStatus: "idle",
   createError: null,
   updateStatus: "idle",
@@ -172,6 +189,31 @@ const doctorScheduleSlice = createSlice({
         state.deleteStatus = "failed";
         state.deleteError = action.payload || action.error.message;
       });
+
+    // departments
+    builder
+      .addCase(fetchDepartments.pending, (state) => {
+        state.departmentsStatus = "loading";
+        state.departmentsError = null;
+      })
+      .addCase(fetchDepartments.fulfilled, (state, action) => {
+        state.departmentsStatus = "succeeded";
+        if (action.payload && action.payload.data) {
+          state.departments = Array.isArray(action.payload.data)
+            ? action.payload.data
+            : [action.payload.data];
+        } else if (Array.isArray(action.payload)) {
+          state.departments = action.payload;
+        } else if (action.payload) {
+          state.departments = [action.payload];
+        } else {
+          state.departments = [];
+        }
+      })
+      .addCase(fetchDepartments.rejected, (state, action) => {
+        state.departmentsStatus = "failed";
+        state.departmentsError = action.payload || action.error.message;
+      });
   },
 });
 
@@ -184,3 +226,8 @@ export const selectSchedulesError = (state) => state.doctorSchedule?.error;
 export const selectCreateStatus = (state) => state.doctorSchedule?.createStatus;
 export const selectUpdateStatus = (state) => state.doctorSchedule?.updateStatus;
 export const selectDeleteStatus = (state) => state.doctorSchedule?.deleteStatus;
+export const selectDepartments = (state) => state.doctorSchedule?.departments;
+export const selectDepartmentsStatus = (state) =>
+  state.doctorSchedule?.departmentsStatus;
+export const selectDepartmentsError = (state) =>
+  state.doctorSchedule?.departmentsError;

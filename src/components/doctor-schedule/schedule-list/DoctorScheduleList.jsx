@@ -4,6 +4,9 @@ import {
   fetchSchedules,
   selectSchedules,
   selectSchedulesStatus,
+  fetchDepartments,
+  selectDepartments,
+  selectDepartmentsStatus,
 } from "../../../features/doctorScheduleSlice";
 import { deleteSchedule } from "../../../features/doctorScheduleSlice";
 import Swal from "sweetalert2";
@@ -13,10 +16,13 @@ export default function DoctorScheduleList() {
   const dispatch = useDispatch();
   const schedules = useSelector(selectSchedules);
   const schedulesStatus = useSelector(selectSchedulesStatus);
+  const departments = useSelector(selectDepartments) || [];
+  const departmentsStatus = useSelector(selectDepartmentsStatus);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   // Fetch schedules on mount
   useEffect(() => {
     dispatch(fetchSchedules());
+    dispatch(fetchDepartments());
   }, [dispatch]);
 
   // Show bootstrap modal when a schedule is selected
@@ -215,9 +221,26 @@ export default function DoctorScheduleList() {
               className="form-select form-select-sm"
             >
               <option value="">All Departments</option>
-              <option value="Pediatrician">Pediatrician</option>
-              <option value="Cardiologist">Cardiologist</option>
-              <option value="Dermatologist">Dermatologist</option>
+              {departmentsStatus === "loading" ? (
+                <option disabled>Loading...</option>
+              ) : (
+                departments.map((d) => (
+                  <option
+                    key={d.id || d._id}
+                    value={
+                      d.departmentName ||
+                      d.name ||
+                      d.department ||
+                      d.departmentName
+                    }
+                  >
+                    {d.departmentName ||
+                      d.name ||
+                      d.department ||
+                      d.departmentName}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
