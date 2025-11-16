@@ -41,10 +41,12 @@ import EditDeathCertificateForm from "./components/reports/edit-death-certificat
 import PharmacyModule from "./components/pharmacy/PharmacyModule";
 import DoctorScheduleList from "./components/doctor-schedule/schedule-list/DoctorScheduleList";
 import EditDoctorSchedule from "./components/doctor-schedule/edit-doctor-schedule/EditDoctorSchedule";
-import AmbulanceTable from "./components/ambulance/ambulance-table/AmbulanceTable";
-import DriverTable from "./components/ambulance/driver-table/DriverTable";
-import AssignmentTable from "./components/ambulance/assignment-table/AssignmentTable";
-import ViewAmbulanceAssignmentCompletedTable from "./components/ambulance/view-ambulance-assignment-complited-table/ViewAmbulanceAssignmentCompletedTable";
+import AddPathalogyForm from "./components/reports/pathalogy/add-pathalogy-report/AddPathalogyForm";
+import RadiologyForm from "./components/reports/radiology/RadiologyForm";
+import AddPatientAppointment from "./components/appointments/add-appointments/AddPatientAppointment";
+import ViewPatientAppointment from "./components/appointments/view-appointments/ViewPatientAppointment";
+import AddNewPrescription from "./components/prescriptions/add-new-prescription/AddNewPriscription";
+import ManagePrescription from "./components/prescriptions/manage-priscription/ManagePrescription";
 
 function App() {
   const router = createBrowserRouter([
@@ -221,6 +223,14 @@ function App() {
           path: "edit-death-certificate/:id",
           element: <EditDeathCertificateForm />,
         },
+        {
+          path: "add-radiology-report",
+          element: <RadiologyForm />,
+        },
+        {
+          path: "add-pathology-report",
+          element: <AddPathalogyForm />,
+        },
 
         // Add Doctors Schedule
         {
@@ -241,6 +251,26 @@ function App() {
         {
           path: "pharmacy-module",
           element: <PharmacyModule />,
+        },
+
+        // Appointments Management Routes
+        {
+          path: "add-patient-appointment",
+          element: <AddPatientAppointment />,
+        },
+        {
+          path: "view-patient-appointments",
+          element: <ViewPatientAppointment />,
+        },
+
+        // Prescription Management Routes
+        {
+          path: "add-new-prescription",
+          element: <AddNewPrescription />,
+        },
+        {
+          path: "manage-prescriptions",
+          element: <ManagePrescription />,
         },
       ],
     },

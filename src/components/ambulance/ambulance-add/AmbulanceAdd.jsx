@@ -211,13 +211,14 @@ const AmbulanceAdd = () => {
             {/* Vehicle Number */}
             <div className="col-md-6">
               <label htmlFor="vehicleNumber" className="form-label">
-                Vehicle Number <span className="text-danger">*</span>
+                Vehicle Number (ex. MH12AB1234){" "}
+                <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
                 className="form-control"
                 id="vehicleNumber"
-                placeholder="Enter Vehicle Number"
+                placeholder="Enter Vehicle Number ex. MH12AB1234"
                 value={formData.vehicleNumber}
                 onChange={handleChange}
                 required

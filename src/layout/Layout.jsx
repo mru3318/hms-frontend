@@ -451,16 +451,19 @@ const Layout = () => {
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <NavLink className="nav-link" to="#">
+                    <NavLink className="nav-link" to="add-patient-appointment">
                       {" "}
                       Add Appointments{" "}
                     </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink
+                      className="nav-link"
+                      to="view-patient-appointments"
+                    >
                       {" "}
                       View Appointments{" "}
-                    </a>
+                    </NavLink>
                   </li>
                 </ul>
               </div>
@@ -566,9 +569,9 @@ const Layout = () => {
                       style={{ listStyle: "none" }}
                     >
                       <li>
-                        <a href="#" className="nav-link">
+                        <NavLink to="add-pathology-report" className="nav-link">
                           Add New Report
-                        </a>
+                        </NavLink>
                       </li>
                       <li>
                         <a href="#" className="nav-link">
@@ -594,9 +597,9 @@ const Layout = () => {
                       style={{ listStyle: "none" }}
                     >
                       <li>
-                        <a href="#" className="nav-link">
+                        <NavLink to="add-radiology-report" className="nav-link">
                           Add New Report
-                        </a>
+                        </NavLink>
                       </li>
                       <li>
                         <a href="#" className="nav-link">
@@ -655,14 +658,14 @@ const Layout = () => {
               >
                 <ul className="nav flex-column sub-menu">
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="add-new-prescription">
                       Add New Prescriptions
-                    </a>
+                    </NavLink>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href="#">
+                    <NavLink className="nav-link" to="manage-prescriptions">
                       Manage Prescriptions
-                    </a>
+                    </NavLink>
                   </li>
                 </ul>
               </div>
