@@ -4,6 +4,28 @@ import { API_BASE_URL } from "../../config";
 
 const api = axios.create({ baseURL: API_BASE_URL });
 
+// GET /api/prescriptions/all
+export const fetchAllPrescriptions = createAsyncThunk(
+  "prescription/fetchAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/prescriptions/all");
+      return res.data;
+    } catch (err) {
+      if (err.response) {
+        const message =
+          err.response.data?.message || err.response.data || err.message;
+        return rejectWithValue({
+          message,
+          status: err.response.status,
+          url: err.config?.url,
+        });
+      }
+      return rejectWithValue({ message: err.message || "Network error" });
+    }
+  }
+);
+
 // POST /api/prescriptions
 export const addPrescription = createAsyncThunk(
   "prescription/addPrescription",
@@ -55,6 +77,23 @@ const priscriptionSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      .addCase(fetchAllPrescriptions.pending, (state) => {
+        state.fetchStatus = "loading";
+        state.fetchError = null;
+      })
+      .addCase(fetchAllPrescriptions.fulfilled, (state, action) => {
+        state.fetchStatus = "succeeded";
+        const list =
+          action.payload && action.payload.data
+            ? action.payload.data
+            : action.payload;
+        state.prescriptions = Array.isArray(list) ? list : list ? [list] : [];
+      })
+      .addCase(fetchAllPrescriptions.rejected, (state, action) => {
+        state.fetchStatus = "failed";
+        state.fetchError = action.payload?.message || action.error?.message;
+      })
+
       .addCase(addPrescription.pending, (state) => {
         state.addStatus = "loading";
         state.addError = null;
@@ -90,5 +129,9 @@ export const selectAddPrescriptionError = (state) =>
   state.priscription?.addError;
 export const selectAddPrescriptionErrors = (state) =>
   state.priscription?.addErrors;
+export const selectFetchPrescriptionsStatus = (state) =>
+  state.priscription?.fetchStatus;
+export const selectFetchPrescriptionsError = (state) =>
+  state.priscription?.fetchError;
 
 // `addPrescription` already exported above as a named export.

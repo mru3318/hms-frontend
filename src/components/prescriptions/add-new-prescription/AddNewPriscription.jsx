@@ -1,3 +1,4 @@
+import "./AddNewPriscription.css";
 import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import axios from "axios";
@@ -16,6 +17,14 @@ export default function AddNewPrescription() {
   const [doctorsLoading, setDoctorsLoading] = useState(false);
   const [doctorsError, setDoctorsError] = useState(null);
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
+  // patients for autocomplete
+  const [patients, setPatients] = useState([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+  const [patientsError, setPatientsError] = useState(null);
+  const [patientQuery, setPatientQuery] = useState("");
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [patientAge, setPatientAge] = useState("");
+  const [patientGender, setPatientGender] = useState("");
   const dispatch = useDispatch();
   // console.log("URL is :", API_BASE_URL);
   // Fetch departments on mount
@@ -38,6 +47,27 @@ export default function AddNewPrescription() {
       }
     };
     fetchDepartments();
+    return () => (mounted = false);
+  }, []);
+
+  // Fetch patients list for autocomplete
+  useEffect(() => {
+    let mounted = true;
+    const fetchPatients = async () => {
+      setPatientsLoading(true);
+      setPatientsError(null);
+      try {
+        const res = await axios.get(`${API_BASE_URL}/patients/names-and-ids`);
+        const data = res.data?.data ?? res.data;
+        if (mounted) setPatients(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (mounted)
+          setPatientsError(err?.message || "Failed to load patients");
+      } finally {
+        if (mounted) setPatientsLoading(false);
+      }
+    };
+    fetchPatients();
     return () => (mounted = false);
   }, []);
 
@@ -64,6 +94,19 @@ export default function AddNewPrescription() {
       setDoctorsLoading(false);
     }
   };
+
+  // derived filtered patients for suggestions
+  const filteredPatients = patientQuery
+    ? patients
+        .filter((p) => {
+          const q = patientQuery.toLowerCase();
+          return (
+            String(p.fullName).toLowerCase().includes(q) ||
+            String(p.hospitalPatientId).toLowerCase().includes(q)
+          );
+        })
+        .slice(0, 10)
+    : [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -131,6 +174,11 @@ export default function AddNewPrescription() {
   const handleReset = () => {
     setSelectedDept("");
     setDoctors([]);
+    setPatientQuery("");
+    setSelectedPatientId("");
+    setPatientAge("");
+    setPatientGender("");
+    setRows([{ medicineName: "", frequency: "", duration: "" }]);
   };
 
   //changes by me here
@@ -155,7 +203,7 @@ export default function AddNewPrescription() {
   };
 
   return (
-    <div className="full-width-card card shadow border-0 rounded-3">
+    <div className="prescription-card full-width-card card shadow border-0 rounded-3">
       {/* Header */}
       <div
         className=" text-white text-center py-3 rounded-top fw-semibold"
@@ -166,8 +214,12 @@ export default function AddNewPrescription() {
 
       <div className="card-body">
         <form onSubmit={handleSubmit} onReset={handleReset}>
-          {/* Hidden default for patientId (replace with real selector if available) */}
-          <input type="hidden" name="patientId" defaultValue="1" />
+          {/* Hidden patientId will be filled when user selects a patient from suggestions */}
+          <input
+            type="hidden"
+            name="patientId"
+            value={selectedPatientId || ""}
+          />
           {/* Department & Doctor */}
           <div className="row mb-3">
             <div className="col-md-6">
@@ -229,32 +281,84 @@ export default function AddNewPrescription() {
           </div>
           {/* Patient Info */}
           <div className="row mb-3">
-            <div className="col-md-6">
+            <div className="col-md-6 position-relative">
               <label className="form-label fw-semibold">
                 Patient Name <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="Enter patient name"
+                placeholder={
+                  patientsLoading
+                    ? "Loading patients..."
+                    : "Search patient name or ID"
+                }
+                value={patientQuery}
+                onChange={(e) => {
+                  setPatientQuery(e.target.value);
+                  setSelectedPatientId("");
+                }}
                 required
+                autoComplete="off"
               />
+
+              {/* Suggestions */}
+              {patientQuery && filteredPatients.length > 0 && (
+                <ul
+                  className="list-group position-absolute w-100"
+                  style={{ zIndex: 1200 }}
+                >
+                  {filteredPatients.map((p) => (
+                    <li
+                      key={p.id}
+                      className="list-group-item list-group-item-action"
+                      onClick={() => {
+                        setPatientQuery(
+                          `${p.fullName} (${p.hospitalPatientId})`
+                        );
+                        setSelectedPatientId(p.id);
+                        setPatientAge(p.age || "");
+                        setPatientGender(p.gender || "");
+                      }}
+                      role="button"
+                    >
+                      {p.fullName}{" "}
+                      <small className="text-muted">
+                        ({p.hospitalPatientId})
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {patientsError && (
+                <div className="small text-danger mt-1">{patientsError}</div>
+              )}
             </div>
             <div className="col-md-3">
               <label className="form-label fw-semibold">Age</label>
               <input
+                name="age"
                 type="number"
                 className="form-control"
                 placeholder="Enter age"
+                value={patientAge}
+                onChange={(e) => setPatientAge(e.target.value)}
+                readOnly
               />
             </div>
             <div className="col-md-3">
               <label className="form-label fw-semibold">Gender</label>
-              <select className="form-select">
+              <select
+                name="gender"
+                disabled
+                className="form-select"
+                value={patientGender}
+                onChange={(e) => setPatientGender(e.target.value)}
+              >
                 <option value="">Select gender</option>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
               </select>
             </div>
           </div>
@@ -304,76 +408,80 @@ export default function AddNewPrescription() {
               Prescription Details <span className="text-danger">*</span>
             </label>
 
-            <table className="table table-bordered text-center align-middle">
-              <thead className="table-info">
-                <tr>
-                  <th>Medicine Name</th>
-                  <th>Frequency</th>
-                  <th>Duration</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {rows.map((row, index) => (
-                  <tr key={index}>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="e.g., Paracetamol"
-                        value={row.medicineName}
-                        onChange={(e) =>
-                          handleChange(index, "medicineName", e.target.value)
-                        }
-                      />
-                    </td>
-
-                    <td>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="2 times/day"
-                        value={row.frequency}
-                        onChange={(e) =>
-                          handleChange(index, "frequency", e.target.value)
-                        }
-                      />
-                    </td>
-
-                    <td>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="5 days"
-                        value={row.duration}
-                        onChange={(e) =>
-                          handleChange(index, "duration", e.target.value)
-                        }
-                      />
-                    </td>
-
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleRemoveRow(index)}
-                      >
-                        Remove
-                      </button>
-                    </td>
+            <div className="table-responsive">
+              <table className="table table-bordered text-center align-middle">
+                <thead className="table-info">
+                  <tr>
+                    <th>Medicine Name</th>
+                    <th>Frequency</th>
+                    <th>Duration</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={handleAddRow}
-            >
-              <i className="bi bi-plus me-1"></i> Add Medicine
-            </button>
+                <tbody>
+                  {rows.map((row, index) => (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="e.g., Paracetamol"
+                          value={row.medicineName}
+                          onChange={(e) =>
+                            handleChange(index, "medicineName", e.target.value)
+                          }
+                        />
+                      </td>
+
+                      <td>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="2 times/day"
+                          value={row.frequency}
+                          onChange={(e) =>
+                            handleChange(index, "frequency", e.target.value)
+                          }
+                        />
+                      </td>
+
+                      <td>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="5 days"
+                          value={row.duration}
+                          onChange={(e) =>
+                            handleChange(index, "duration", e.target.value)
+                          }
+                        />
+                      </td>
+
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleRemoveRow(index)}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-2">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleAddRow}
+              >
+                <i className="bi bi-plus me-1"></i> Add Medicine
+              </button>
+            </div>
           </div>
           {/* Notes */}
           <div className="mb-3">
@@ -387,12 +495,9 @@ export default function AddNewPrescription() {
           </div>
           {/* Buttons */}
           <div className="d-flex justify-content-center mt-4">
-            <button type="reset" className="btn btn-secondary me-2">
-              <i className="bi bi-arrow-left"></i> Cancel
-            </button>
             <button
               type="submit"
-              className="btn"
+              className="btn btn-primary"
               style={{ backgroundColor: "#01C0C8", color: "white" }}
             >
               <i className="bi bi-save me-1"></i> Save Prescription

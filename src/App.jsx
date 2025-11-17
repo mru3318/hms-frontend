@@ -47,6 +47,8 @@ import AddPatientAppointment from "./components/appointments/add-appointments/Ad
 import ViewPatientAppointment from "./components/appointments/view-appointments/ViewPatientAppointment";
 import AddNewPrescription from "./components/prescriptions/add-new-prescription/AddNewPriscription";
 import ManagePrescription from "./components/prescriptions/manage-priscription/ManagePrescription";
+import PathologyReportList from "./components/reports/pathalogy/manage-pathalogy-report/PathologyReportList";
+import RadiologyReportList from "./components/reports/radiology/manage-radiology-report/RadiologyReportList";
 
 function App() {
   const router = createBrowserRouter([
@@ -230,6 +232,14 @@ function App() {
         {
           path: "add-pathology-report",
           element: <AddPathalogyForm />,
+        },
+        {
+          path: "manage-pathology-reports",
+          element: <PathologyReportList />,
+        },
+        {
+          path: "manage-radiology-reports",
+          element: <RadiologyReportList />,
         },
 
         // Add Doctors Schedule

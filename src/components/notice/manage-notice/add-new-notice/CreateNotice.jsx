@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 
-const CreateNotice = () => {
+export default function CreateNotice() {
   const [filePreview, setFilePreview] = useState(null);
   const [fileName, setFileName] = useState("");
 
-  const previewNewFile = (event) => {
-    const file = event.target.files[0];
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setFilePreview({ type: "image", src: e.target.result });
+      reader.onload = (event) => {
+        setFilePreview({ type: "image", src: event.target.result });
         setFileName("");
       };
       reader.readAsDataURL(file);
@@ -21,23 +21,27 @@ const CreateNotice = () => {
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert("Notice Saved Successfully!");
+  };
+
   return (
-    <div className="card shadow border-0 w-100">
+    <div className="full-width-card card shadow border-0">
       {/* Header */}
       <div
         className="card-header text-white text-center py-3"
         style={{ backgroundColor: "#01C0C8" }}
       >
         <h4 className="mb-0">
-          <i className="fa-solid fa-bullhorn me-2"></i>
+          <i className="bi bi-megaphone-fill me-2"></i>
           Create New Notice
         </h4>
       </div>
 
       {/* Body */}
       <div className="card-body p-4">
-        <form className="w-100">
-          {/* Title and Start Date */}
+        <form onSubmit={handleSubmit}>
           <div className="row">
             <div className="col-md-6 mb-3">
               <label htmlFor="title" className="form-label fw-semibold">
@@ -67,7 +71,6 @@ const CreateNotice = () => {
             </div>
           </div>
 
-          {/* End Date and Audience */}
           <div className="row">
             <div className="col-md-6 mb-3">
               <label htmlFor="endDate" className="form-label fw-semibold">
@@ -83,19 +86,40 @@ const CreateNotice = () => {
             </div>
 
             <div className="col-md-6 mb-3">
-              <label htmlFor="target" className="form-label fw-semibold">
+              <label className="form-label fw-semibold">
                 Target Audience <span className="text-danger">*</span>
               </label>
-              <select id="target" className="form-select" required>
-                <option value="">Select Audience</option>
-                <option>All Staff</option>
-                <option>Teachers</option>
-                <option>Students</option>
-              </select>
+
+              <div className="btn-group d-flex flex-wrap gap-2">
+                {[
+                  { id: 3, role: "DOCTOR" },
+                  { id: 4, role: "HEADNURSE" },
+                  { id: 5, role: "PHARMACIST" },
+                  { id: 6, role: "ACCOUNTANT" },
+                  { id: 7, role: "HR" },
+                  { id: 8, role: "LABORATORIST" },
+                  { id: 9, role: "INSURANCE" },
+                  { id: 10, role: "RECEPTIONIST" },
+                ].map(({ id, role }) => (
+                  <React.Fragment key={id}>
+                    <input
+                      type="checkbox"
+                      className="btn-check"
+                      id={`role-${id}`}
+                      autoComplete="off"
+                    />
+                    <label
+                      className="btn btn-outline-info"
+                      htmlFor={`role-${id}`}
+                    >
+                      {role}
+                    </label>
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Description */}
           <div className="mb-3">
             <label htmlFor="description" className="form-label fw-semibold">
               Description <span className="text-danger">*</span>
@@ -105,12 +129,11 @@ const CreateNotice = () => {
               name="noticeDescription"
               className="form-control"
               rows="6"
-              placeholder="Write notice details here..."
+              placeholder="Enter notice details here..."
               required
             ></textarea>
           </div>
 
-          {/* File Upload */}
           <div className="mb-4">
             <label htmlFor="attachment" className="form-label fw-semibold">
               Attachment
@@ -120,16 +143,16 @@ const CreateNotice = () => {
               id="attachment"
               className="form-control"
               accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
-              onChange={previewNewFile}
+              onChange={handleFileChange}
             />
 
-            {/* File Preview */}
+            {/* Preview Section */}
             {(filePreview || fileName) && (
-              <div id="newFilePreview" className="mt-3">
+              <div className="mt-3">
                 <p className="text-muted mb-2">
                   <strong>File Preview:</strong>
                 </p>
-                {filePreview?.type === "image" ? (
+                {filePreview && filePreview.type === "image" ? (
                   <img
                     src={filePreview.src}
                     alt="Preview"
@@ -138,32 +161,32 @@ const CreateNotice = () => {
                   />
                 ) : (
                   <div className="p-2 bg-light rounded">
-                    <i className="fa-regular fa-file-lines me-2"></i>
-                    {fileName}
+                    <i className="bi bi-file-earmark-text"></i> {fileName}
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Buttons Centered */}
-          <div className="text-center mt-4">
+          {/* Buttons */}
+          <div className="d-flex justify-content-end gap-2 mt-4">
             <button
               type="submit"
-              className="btn text-white px-4 me-2"
+              className="btn text-white px-4"
               style={{ backgroundColor: "#01C0C8" }}
             >
-              <i className="fa-solid fa-floppy-disk me-2"></i>
-              Save Notice
+              <i className="bi bi-save me-2"></i>Save Notice
             </button>
-            <a href="/notice-list" className="btn btn-danger px-4">
-              Cancel
-            </a>
+            <button
+              type="button"
+              className="btn btn-secondary px-4"
+              onClick={() => window.history.back()}
+            >
+              <i className="bi bi-arrow-left me-2"></i>Cancel
+            </button>
           </div>
         </form>
       </div>
     </div>
   );
-};
-
-export default CreateNotice;
+}

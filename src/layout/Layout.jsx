@@ -574,9 +574,12 @@ const Layout = () => {
                         </NavLink>
                       </li>
                       <li>
-                        <a href="#" className="nav-link">
+                        <NavLink
+                          to="manage-pathology-reports"
+                          className="nav-link"
+                        >
                           Manage Reports
-                        </a>
+                        </NavLink>
                       </li>
                     </ul>
                   </li>
@@ -602,9 +605,12 @@ const Layout = () => {
                         </NavLink>
                       </li>
                       <li>
-                        <a href="#" className="nav-link">
+                        <NavLink
+                          to="manage-radiology-reports"
+                          className="nav-link"
+                        >
                           Manage Reports
-                        </a>
+                        </NavLink>
                       </li>
                     </ul>
                   </li>
