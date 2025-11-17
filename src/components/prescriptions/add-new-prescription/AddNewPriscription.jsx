@@ -133,6 +133,27 @@ export default function AddNewPrescription() {
     setDoctors([]);
   };
 
+  //changes by me here
+  const [rows, setRows] = useState([
+    { medicineName: "", frequency: "", duration: "" },
+  ]);
+
+  const handleAddRow = () => {
+    setRows([...rows, { medicineName: "", frequency: "", duration: "" }]);
+  };
+
+  const handleRemoveRow = (index) => {
+    const updated = [...rows];
+    updated.splice(index, 1);
+    setRows(updated);
+  };
+
+  const handleChange = (index, field, value) => {
+    const updated = [...rows];
+    updated[index][field] = value;
+    setRows(updated);
+  };
+
   return (
     <div className="full-width-card card shadow border-0 rounded-3">
       {/* Header */}
@@ -206,7 +227,6 @@ export default function AddNewPrescription() {
               )}
             </div>
           </div>
-
           {/* Patient Info */}
           <div className="row mb-3">
             <div className="col-md-6">
@@ -238,7 +258,6 @@ export default function AddNewPrescription() {
               </select>
             </div>
           </div>
-
           {/* Date */}
           <div className="row mb-3">
             <div className="col-md-4">
@@ -253,7 +272,6 @@ export default function AddNewPrescription() {
               />
             </div>
           </div>
-
           {/* Symptoms */}
           <div className="mb-3">
             <label className="form-label fw-semibold">
@@ -267,7 +285,6 @@ export default function AddNewPrescription() {
               required
             ></textarea>
           </div>
-
           {/* Diagnosis */}
           <div className="mb-3">
             <label className="form-label fw-semibold">
@@ -282,50 +299,82 @@ export default function AddNewPrescription() {
             ></textarea>
           </div>
 
-          {/* Prescription Details */}
           <div className="mb-3">
             <label className="form-label fw-semibold">
               Prescription Details <span className="text-danger">*</span>
             </label>
+
             <table className="table table-bordered text-center align-middle">
               <thead className="table-info">
                 <tr>
                   <th>Medicine Name</th>
                   <th>Frequency</th>
                   <th>Duration</th>
+                  <th>Action</th>
                 </tr>
               </thead>
+
               <tbody>
-                <tr>
-                  <td>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="medicineName"
-                      placeholder="e.g., Paracetamol"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="frequency"
-                      placeholder="2 times/day"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="duration"
-                      placeholder="5 days"
-                    />
-                  </td>
-                </tr>
+                {rows.map((row, index) => (
+                  <tr key={index}>
+                    <td>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g., Paracetamol"
+                        value={row.medicineName}
+                        onChange={(e) =>
+                          handleChange(index, "medicineName", e.target.value)
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="2 times/day"
+                        value={row.frequency}
+                        onChange={(e) =>
+                          handleChange(index, "frequency", e.target.value)
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="5 days"
+                        value={row.duration}
+                        onChange={(e) =>
+                          handleChange(index, "duration", e.target.value)
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleRemoveRow(index)}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
-          </div>
 
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handleAddRow}
+            >
+              <i className="bi bi-plus me-1"></i> Add Medicine
+            </button>
+          </div>
           {/* Notes */}
           <div className="mb-3">
             <label className="form-label fw-semibold">Additional Notes</label>
@@ -336,7 +385,6 @@ export default function AddNewPrescription() {
               placeholder="Any additional advice..."
             ></textarea>
           </div>
-
           {/* Buttons */}
           <div className="d-flex justify-content-center mt-4">
             <button type="reset" className="btn btn-secondary me-2">

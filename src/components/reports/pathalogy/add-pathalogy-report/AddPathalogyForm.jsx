@@ -201,7 +201,7 @@ export default function AddPathalogyForm() {
               <h5 className="mb-0">Billing Summary</h5>
             </div>
 
-            <div className="card-body">
+            <div className="card-body" style={{ minHeight: "209px" }}>
               <div className="border rounded p-3 d-flex justify-content-between">
                 <div>
                   <div>Tests Count</div>
