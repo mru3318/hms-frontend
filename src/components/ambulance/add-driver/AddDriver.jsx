@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
 import "./AddDriver.css";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchAmbulances,
+  selectAmbulances,
+  selectAmbulancesStatus,
+  selectAmbulancesError,
+  addDriver,
+} from "../../../features/ambulanceSlice";
+import Swal from "sweetalert2";
 
 const AddDriver = () => {
   const [formData, setFormData] = useState({
@@ -9,33 +18,16 @@ const AddDriver = () => {
     ambulanceId: "",
   });
 
-  const [ambulances, setAmbulances] = useState([]);
-  const [loadingAmbulances, setLoadingAmbulances] = useState(true);
-  const [ambulancesError, setAmbulancesError] = useState(null);
+  const dispatch = useDispatch();
+
+  const ambulances = useSelector(selectAmbulances) || [];
+  const ambulancesStatus = useSelector(selectAmbulancesStatus);
+  const ambulancesError = useSelector(selectAmbulancesError);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    const fetchAmbulances = async () => {
-      try {
-        setLoadingAmbulances(true);
-        setAmbulancesError(null);
-        const res = await fetch(`http://localhost:8080/api/ambulance/list`);
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        const data = await res.json();
-        if (mounted) setAmbulances(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (mounted)
-          setAmbulancesError(err.message || "Failed to load ambulances");
-      } finally {
-        if (mounted) setLoadingAmbulances(false);
-      }
-    };
-    fetchAmbulances();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    if (ambulancesStatus === "idle") dispatch(fetchAmbulances());
+  }, [dispatch, ambulancesStatus]);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -47,7 +39,6 @@ const AddDriver = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setAmbulancesError(null);
 
     // basic validation
     if (
@@ -55,95 +46,72 @@ const AddDriver = () => {
       !formData.licenseNumber ||
       !formData.contactNumber
     ) {
-      alert("Fill all required fields.");
+      Swal.fire({
+        icon: "warning",
+        title: "Missing fields",
+        text: "Fill all required fields.",
+      });
       setSubmitting(false);
       return;
     }
 
     if (!formData.ambulanceId) {
-      alert("Please select a valid ambulance.");
+      Swal.fire({
+        icon: "warning",
+        title: "Select ambulance",
+        text: "Please select a valid ambulance.",
+      });
       setSubmitting(false);
       return;
     }
 
-    const ambulanceId = Number(formData.ambulanceId);
-    if (Number.isNaN(ambulanceId)) {
-      alert("Please select a valid ambulance.");
+    // ensure numeric ambulance id (avoid sending NaN which becomes null in JSON)
+    const ambIdNum = Number(formData.ambulanceId);
+    if (!Number.isFinite(ambIdNum)) {
+      Swal.fire({
+        icon: "warning",
+        title: "Invalid ambulance",
+        text: "Selected ambulance ID is invalid.",
+      });
       setSubmitting(false);
       return;
     }
 
-    const payload1 = {
+    const payload = {
       driverName: formData.driverName,
       licenseNumber: formData.licenseNumber,
       contactNumber: formData.contactNumber,
-      ambulanceId: ambulanceId,
+      ambulanceId: ambIdNum,
     };
 
-    console.log("Submitting driver payload (attempt 1):", payload1);
-
     try {
-      let res = await fetch(`http://localhost:8080/api/driver/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload1),
+      // dispatch addDriver and unwrap for error handling
+      await dispatch(addDriver(payload)).unwrap();
+      Swal.fire({
+        icon: "success",
+        title: "Saved",
+        text: "Driver added successfully",
+        timer: 1800,
+        showConfirmButton: false,
       });
-
-      if (res.ok) {
-        alert("Driver added successfully!");
-        setFormData({
-          driverName: "",
-          licenseNumber: "",
-          contactNumber: "",
-          ambulanceId: "",
-        });
-        setSubmitting(false);
-        return;
-      }
-
-      const text = await res.text();
-      console.warn("Driver add failed (attempt 1):", res.status, text);
-
-      // if backend complains id null, try nested ambulance object
-      const shouldRetryWithObject =
-        /id must not be null|given id must not be null|must not be null/i.test(
-          text
-        );
-      if (shouldRetryWithObject) {
-        const payload2 = {
-          driverName: formData.driverName,
-          licenseNumber: formData.licenseNumber,
-          contactNumber: formData.contactNumber,
-          ambulance: { id: ambulanceId },
-        };
-        console.log("Retrying with payload (attempt 2):", payload2);
-
-        res = await fetch(`http://localhost:8080/api/driver/add`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload2),
-        });
-
-        if (res.ok) {
-          alert("Driver added successfully (with nested ambulance)!");
-          setFormData({
-            driverName: "",
-            licenseNumber: "",
-            contactNumber: "",
-            ambulanceId: "",
-          });
-          setSubmitting(false);
-          return;
-        }
-
-        const text2 = await res.text();
-        throw new Error(text2 || `${res.status} ${res.statusText}`);
-      }
-
-      throw new Error(text || `${res.status} ${res.statusText}`);
+      setFormData({
+        driverName: "",
+        licenseNumber: "",
+        contactNumber: "",
+        ambulanceId: "",
+      });
     } catch (err) {
       console.error("Add driver failed:", err);
-      alert("Failed to add driver: " + (err.message || "unknown error"));
+      const message =
+        err?.message ||
+        err?.errors ||
+        JSON.stringify(err) ||
+        "Failed to add driver";
+      Swal.fire({
+        icon: "error",
+        title: "Failed",
+        text: typeof message === "string" ? message : JSON.stringify(message),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -225,24 +193,31 @@ const AddDriver = () => {
               value={formData.ambulanceId}
               onChange={handleChange}
               required
-              disabled={loadingAmbulances || submitting}
+              disabled={ambulancesStatus === "loading" || submitting}
             >
               <option value="">
-                {loadingAmbulances
+                {ambulancesStatus === "loading"
                   ? "Loading ambulances..."
                   : "Choose Ambulance"}
               </option>
 
               {ambulances &&
                 ambulances.map((a) => (
-                  <option key={a.ambulanceId} value={a.ambulanceId}>
+                  <option
+                    key={a.ambulanceId || a.id}
+                    value={a.ambulanceId || a.id}
+                  >
                     {a.vehicleNumber}
                   </option>
                 ))}
             </select>
 
             {ambulancesError && (
-              <div className="text-danger small mt-1">{ambulancesError}</div>
+              <div className="text-danger small mt-1">
+                {typeof ambulancesError === "string"
+                  ? ambulancesError
+                  : ambulancesError?.message}
+              </div>
             )}
           </div>
         </div>

@@ -89,6 +89,66 @@ export const addAmbulance = createAsyncThunk(
   }
 );
 
+// Add a new driver (uses same API base)
+export const addDriver = createAsyncThunk(
+  "ambulance/addDriver",
+  async (driverData, { rejectWithValue }) => {
+    try {
+      const sanitized = {
+        driverName: driverData.driverName?.trim(),
+        licenseNumber: driverData.licenseNumber?.trim(),
+        contactNumber: driverData.contactNumber?.trim(),
+      };
+
+      // attach ambulance only when we have a valid numeric id
+      const rawAmbId =
+        driverData.ambulanceId !== undefined && driverData.ambulanceId !== null
+          ? Number(driverData.ambulanceId)
+          : undefined;
+      if (Number.isFinite(rawAmbId)) {
+        // include both top-level ambulanceId and nested ambulance object
+        sanitized.ambulanceId = rawAmbId;
+        sanitized.ambulance = { id: rawAmbId };
+      } else if (
+        driverData.ambulance &&
+        Number.isFinite(Number(driverData.ambulance.id))
+      ) {
+        const fallbackId = Number(driverData.ambulance.id);
+        sanitized.ambulanceId = fallbackId;
+        sanitized.ambulance = { id: fallbackId };
+      }
+      console.debug("[addDriver] payload", sanitized);
+      const res = await api.post("/driver/add", sanitized, {
+        headers: { "Content-Type": "application/json" },
+      });
+      return res.data;
+    } catch (err) {
+      console.error("[addDriver] Error", err.response?.data || err.message);
+      if (err.response) {
+        const respData = err.response.data;
+        const errors = Array.isArray(respData)
+          ? respData
+          : respData?.errors || respData?.fieldErrors || undefined;
+        const message =
+          typeof respData === "string"
+            ? respData
+            : respData?.message || respData || err.message;
+        const payload = {
+          message,
+          status: err.response.status,
+          url: err.config?.url,
+          errors,
+        };
+        return rejectWithValue(payload);
+      }
+      return rejectWithValue({
+        message: err.message || "Network error",
+        code: err.code,
+      });
+    }
+  }
+);
+
 const initialState = {
   ambulances: [],
   ambulancesStatus: "idle",
@@ -101,6 +161,8 @@ const initialState = {
   formDataError: null,
   addStatus: "idle",
   addError: null,
+  addDriverStatus: "idle",
+  addDriverError: null,
 };
 
 const ambulanceSlice = createSlice({
@@ -177,6 +239,20 @@ const ambulanceSlice = createSlice({
         state.addStatus = "failed";
         state.addError = action.payload || action.error.message;
       });
+
+    // add driver
+    builder
+      .addCase(addDriver.pending, (state) => {
+        state.addDriverStatus = "loading";
+        state.addDriverError = null;
+      })
+      .addCase(addDriver.fulfilled, (state) => {
+        state.addDriverStatus = "succeeded";
+      })
+      .addCase(addDriver.rejected, (state, action) => {
+        state.addDriverStatus = "failed";
+        state.addDriverError = action.payload || action.error.message;
+      });
   },
 });
 
@@ -196,3 +272,6 @@ export const selectAmbulanceFormDataError = (state) =>
   state.ambulance?.formDataError;
 export const selectAddAmbulanceStatus = (state) => state.ambulance?.addStatus;
 export const selectAddAmbulanceError = (state) => state.ambulance?.addError;
+export const selectAddDriverStatus = (state) =>
+  state.ambulance?.addDriverStatus;
+export const selectAddDriverError = (state) => state.ambulance?.addDriverError;
