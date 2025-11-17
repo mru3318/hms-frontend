@@ -1,6 +1,65 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchNotices,
+  deleteNotice,
+  selectNotices,
+  selectNoticesFetchStatus,
+  selectNoticesFetchError,
+} from "../../../../features/noticeSlice";
+import Swal from "sweetalert2";
+import { NavLink } from "react-router-dom";
 
 const ViewNotices = () => {
+  const dispatch = useDispatch();
+  const notices = useSelector(selectNotices);
+  const fetchStatus = useSelector(selectNoticesFetchStatus);
+  const fetchError = useSelector(selectNoticesFetchError);
+
+  useEffect(() => {
+    if (fetchStatus === "idle") dispatch(fetchNotices());
+  }, [dispatch, fetchStatus]);
+
+  const handleDelete = (id) => {
+    if (!id) return;
+    Swal.fire({
+      title: "Delete notice?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete",
+      cancelButtonText: "Cancel",
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      Swal.fire({
+        title: "Deleting...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      dispatch(deleteNotice(id))
+        .unwrap()
+        .then(() => {
+          Swal.fire({
+            icon: "success",
+            title: "Deleted",
+            timer: 1200,
+            showConfirmButton: false,
+          });
+          // refresh list to ensure consistency
+          dispatch(fetchNotices());
+        })
+        .catch((err) => {
+          console.error("Delete failed:", err);
+          Swal.fire({
+            icon: "error",
+            title: "Delete failed",
+            text: err?.message || "Could not delete notice",
+          });
+        });
+    });
+  };
   return (
     <div className="full-width-card card shadow-sm border-0">
       {/* Header */}
@@ -35,6 +94,16 @@ const ViewNotices = () => {
         </div>
 
         {/* Table */}
+        {fetchStatus === "loading" && (
+          <div className="text-center small text-muted mb-2">
+            Loading notices...
+          </div>
+        )}
+        {fetchStatus === "failed" && (
+          <div className="text-center small text-danger mb-2">
+            {fetchError || "Failed to load notices"}
+          </div>
+        )}
         <div className="table-responsive">
           <table className="table table-bordered table-striped align-middle text-center mb-0">
             <thead style={{ backgroundColor: "#E0F7FA" }}>
@@ -49,175 +118,98 @@ const ViewNotices = () => {
             </thead>
 
             <tbody>
-              {/* Row 1 */}
-              <tr>
-                <td className="fw-semibold">Hospital Holiday Notice</td>
-                <td>
-                  Hospital will remain closed on <b>1st November</b> for
-                  maintenance.
-                </td>
-                <td>
-                  <input
-                    type="datetime-local"
-                    className="form-control form-control-sm text-center"
-                    value="2025-10-29T09:00"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <input
-                    type="datetime-local"
-                    className="form-control form-control-sm text-center"
-                    value="2025-10-29T17:00"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <a
-                    href="#"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-sm w-100 text-white"
-                    style={{ backgroundColor: "#01C0C8" }}
-                  >
-                    Download
-                  </a>
-                </td>
-                <td>
-                  <div className="d-flex justify-content-center gap-2">
-                    <a
-                      href="#"
-                      className="btn btn-sm text-white px-3"
-                      style={{ backgroundColor: "#01C0C8" }}
-                    >
-                      Edit
-                    </a>
-                    <button
-                      className="btn btn-danger btn-sm px-3"
-                      onClick={() =>
-                        window.confirm(
-                          "Are you sure you want to delete this notice?"
-                        )
-                      }
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
+              {Array.isArray(notices) && notices.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="text-center text-muted small">
+                    No notices found
+                  </td>
+                </tr>
+              )}
 
-              {/* Row 2 */}
-              <tr>
-                <td className="fw-semibold">Staff Meeting</td>
-                <td>
-                  Quarterly review meeting for all staff members in Conference
-                  Hall.
-                </td>
-                <td>
-                  <input
-                    type="datetime-local"
-                    className="form-control form-control-sm text-center"
-                    value="2025-11-02T10:00"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <input
-                    type="datetime-local"
-                    className="form-control form-control-sm text-center"
-                    value="2025-11-02T12:00"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <a
-                    href="#"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-sm w-100 text-white"
-                    style={{ backgroundColor: "#01C0C8" }}
-                  >
-                    Download
-                  </a>
-                </td>
-                <td>
-                  <div className="d-flex justify-content-center gap-2">
-                    <a
-                      href="#"
-                      className="btn btn-sm text-white px-3"
-                      style={{ backgroundColor: "#01C0C8" }}
-                    >
-                      Edit
-                    </a>
-                    <button
-                      className="btn btn-danger btn-sm px-3"
-                      onClick={() =>
-                        window.confirm(
-                          "Are you sure you want to delete this notice?"
-                        )
-                      }
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
+              {Array.isArray(notices) &&
+                notices.map((n) => {
+                  const title = n.noticeTitle || n.title || "-";
+                  const desc = n.noticeDescription || n.description || "";
+                  const start =
+                    n.noticeStartDate || n.startDate || n.start || "";
+                  const end = n.noticeEndDate || n.endDate || n.end || "";
+                  // try several attachment fields
+                  const attachmentUrl =
+                    n.attachmentUrl ||
+                    n.fileUrl ||
+                    n.attachment ||
+                    n.attachment_path ||
+                    null;
 
-              {/* Row 3 */}
-              <tr>
-                <td className="fw-semibold">New Policy Update</td>
-                <td>
-                  All employees must review the updated leave policy document.
-                </td>
-                <td>
-                  <input
-                    type="datetime-local"
-                    className="form-control form-control-sm text-center"
-                    value="2025-10-30T09:00"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <input
-                    type="datetime-local"
-                    className="form-control form-control-sm text-center"
-                    value="2025-10-31T18:00"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <a
-                    href="#"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-sm w-100 text-white"
-                    style={{ backgroundColor: "#01C0C8" }}
-                  >
-                    Download
-                  </a>
-                </td>
-                <td>
-                  <div className="d-flex justify-content-center gap-2">
-                    <a
-                      href="#"
-                      className="btn btn-sm text-white px-3"
-                      style={{ backgroundColor: "#01C0C8" }}
-                    >
-                      Edit
-                    </a>
-                    <button
-                      className="btn btn-danger btn-sm px-3"
-                      onClick={() =>
-                        window.confirm(
-                          "Are you sure you want to delete this notice?"
-                        )
-                      }
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                  // format for datetime-local input if possible
+                  const toInputValue = (s) => {
+                    if (!s) return "";
+                    const d = new Date(s);
+                    if (isNaN(d)) return String(s);
+                    const iso = d.toISOString();
+                    return iso.slice(0, 16);
+                  };
+
+                  return (
+                    <tr key={n.id || n.noticeId || Math.random()}>
+                      <td className="fw-semibold">{title}</td>
+                      <td>
+                        <div
+                          className="small text-muted"
+                          dangerouslySetInnerHTML={{ __html: desc }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="datetime-local"
+                          className="form-control form-control-sm text-center"
+                          value={toInputValue(start)}
+                          readOnly
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="datetime-local"
+                          className="form-control form-control-sm text-center"
+                          value={toInputValue(end)}
+                          readOnly
+                        />
+                      </td>
+                      <td>
+                        {attachmentUrl ? (
+                          <a
+                            href={attachmentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-sm w-100 text-white"
+                            style={{ backgroundColor: "#01C0C8" }}
+                          >
+                            Download
+                          </a>
+                        ) : (
+                          <span className="small text-muted">-</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="d-flex justify-content-center gap-2">
+                          <a
+                            href="#"
+                            className="btn btn-sm text-white px-3"
+                            style={{ backgroundColor: "#01C0C8" }}
+                          >
+                            Edit
+                          </a>
+                          <button
+                            className="btn btn-danger btn-sm px-3"
+                            onClick={() => handleDelete(n.id || n.noticeId)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>

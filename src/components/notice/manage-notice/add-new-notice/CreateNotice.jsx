@@ -1,8 +1,12 @@
 import React, { useState } from "react";
+import Swal from "sweetalert2";
+import { useDispatch } from "react-redux";
+import { addNotice, fetchNotices } from "../../../../features/noticeSlice";
 
 export default function CreateNotice() {
   const [filePreview, setFilePreview] = useState(null);
   const [fileName, setFileName] = useState("");
+  const dispatch = useDispatch();
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -12,7 +16,7 @@ export default function CreateNotice() {
       const reader = new FileReader();
       reader.onload = (event) => {
         setFilePreview({ type: "image", src: event.target.result });
-        setFileName("");
+        setFileName(file.name || "");
       };
       reader.readAsDataURL(file);
     } else {
@@ -23,8 +27,66 @@ export default function CreateNotice() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert("Notice Saved Successfully!");
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    const form = e.target;
+    const title = form.noticeTitle?.value?.trim() || "";
+    const description = form.noticeDescription?.value || "";
+    const startDate = form.noticeStartDate?.value || "";
+    const endDate = form.noticeEndDate?.value || "";
+
+    // collect checked audience ids from .btn-check inputs
+    const checked = Array.from(form.querySelectorAll(".btn-check")).filter(
+      (el) => el.checked
+    );
+    const audienceIds = checked
+      .map((el) => {
+        const parts = el.id ? el.id.split("-") : [];
+        return parts[1] || null;
+      })
+      .filter(Boolean)
+      .join(",");
+
+    const fd = new FormData();
+    fd.append("noticeTitle", title);
+    fd.append("noticeDescription", description);
+    fd.append("noticeStartDate", startDate);
+    fd.append("noticeEndDate", endDate);
+    fd.append("targetAudienceIds", audienceIds);
+
+    const fileInput = form.querySelector("#attachment");
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      fd.append("attachment", fileInput.files[0]);
+    }
+
+    dispatch(addNotice(fd))
+      .unwrap()
+      .then(() => {
+        Swal.fire({
+          icon: "success",
+          title: "Saved",
+          text: "Notice saved successfully",
+          timer: 1400,
+          showConfirmButton: false,
+        });
+        form.reset();
+        setFilePreview(null);
+        setFileName("");
+        // refresh list so other views show the new notice without page reload
+        dispatch(fetchNotices());
+      })
+      .catch((err) => {
+        console.error("Failed to save notice:", err);
+        const msg =
+          err?.message || JSON.stringify(err) || "Failed to save notice";
+        Swal.fire({ icon: "error", title: "Error", text: msg });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
     <div className="full-width-card card shadow border-0">
@@ -54,6 +116,7 @@ export default function CreateNotice() {
                 className="form-control"
                 placeholder="Enter notice title"
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -67,6 +130,7 @@ export default function CreateNotice() {
                 name="noticeStartDate"
                 className="form-control"
                 required
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -82,6 +146,7 @@ export default function CreateNotice() {
                 name="noticeEndDate"
                 className="form-control"
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -107,6 +172,7 @@ export default function CreateNotice() {
                       className="btn-check"
                       id={`role-${id}`}
                       autoComplete="off"
+                      disabled={isSubmitting}
                     />
                     <label
                       className="btn btn-outline-info"
@@ -131,6 +197,7 @@ export default function CreateNotice() {
               rows="6"
               placeholder="Enter notice details here..."
               required
+              disabled={isSubmitting}
             ></textarea>
           </div>
 
@@ -144,6 +211,7 @@ export default function CreateNotice() {
               className="form-control"
               accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
               onChange={handleFileChange}
+              disabled={isSubmitting}
             />
 
             {/* Preview Section */}
@@ -174,13 +242,28 @@ export default function CreateNotice() {
               type="submit"
               className="btn text-white px-4"
               style={{ backgroundColor: "#01C0C8" }}
+              disabled={isSubmitting}
             >
-              <i className="bi bi-save me-2"></i>Save Notice
+              {isSubmitting ? (
+                <>
+                  <span
+                    className="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-save me-2"></i>Save Notice
+                </>
+              )}
             </button>
             <button
               type="button"
               className="btn btn-secondary px-4"
               onClick={() => window.history.back()}
+              disabled={isSubmitting}
             >
               <i className="bi bi-arrow-left me-2"></i>Cancel
             </button>

@@ -25,7 +25,15 @@ export const addNotice = createAsyncThunk(
   "notice/addNotice",
   async (payload, { rejectWithValue }) => {
     try {
-      const res = await axios.post(`${API_BASE_URL}/notices`, payload);
+      // Support sending FormData (for multipart uploads) or JSON payload
+      const isForm =
+        typeof FormData !== "undefined" && payload instanceof FormData;
+      const config = isForm
+        ? { headers: { "Content-Type": "multipart/form-data" } }
+        : { headers: { "Content-Type": "application/json" } };
+
+      const body = isForm ? payload : payload;
+      const res = await axios.post(`${API_BASE_URL}/notices`, body, config);
       return res.data?.data ?? res.data;
     } catch (err) {
       const message =
