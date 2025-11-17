@@ -1,28 +1,131 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
+import axios from "axios";
+import Swal from "sweetalert2";
+import { addPrescription } from "../../../features/priscriptionSlice";
+import { API_BASE_URL } from "../../../../config";
 
 export default function AddNewPrescription() {
   // `${API_BASE_URL}/endpoint`
   const [selectedDept, setSelectedDept] = useState("");
-  const [doctors, setDoctors] = useState([]);
-  // console.log("URL is :", API_BASE_URL);
-  const doctorsByDepartment = {
-    cardiology: ["Dr. A. Sharma", "Dr. K. Patel"],
-    neurology: ["Dr. R. Mehta", "Dr. V. Kapoor"],
-    orthopedics: ["Dr. S. Khan", "Dr. L. Ghosh"],
-    dermatology: ["Dr. P. Desai", "Dr. N. Chatterjee"],
-    pediatrics: ["Dr. R. Nair", "Dr. S. Reddy"],
-    general: ["Dr. B. Joshi", "Dr. M. Gupta", "Dr. T. Varma"],
-  };
+  const [departments, setDepartments] = useState([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [departmentsError, setDepartmentsError] = useState(null);
 
-  const handleDeptChange = (e) => {
-    const dept = e.target.value;
-    setSelectedDept(dept);
-    setDoctors(doctorsByDepartment[dept] || []);
+  const [doctors, setDoctors] = useState([]);
+  const [doctorsLoading, setDoctorsLoading] = useState(false);
+  const [doctorsError, setDoctorsError] = useState(null);
+  const [selectedDoctorId, setSelectedDoctorId] = useState("");
+  const dispatch = useDispatch();
+  // console.log("URL is :", API_BASE_URL);
+  // Fetch departments on mount
+  useEffect(() => {
+    let mounted = true;
+    const fetchDepartments = async () => {
+      setDepartmentsLoading(true);
+      setDepartmentsError(null);
+      try {
+        const res = await axios.get(
+          `${API_BASE_URL}/doctor-schedule/departments`
+        );
+        const data = res.data?.data ?? res.data;
+        if (mounted) setDepartments(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (mounted)
+          setDepartmentsError(err?.message || "Failed to load departments");
+      } finally {
+        if (mounted) setDepartmentsLoading(false);
+      }
+    };
+    fetchDepartments();
+    return () => (mounted = false);
+  }, []);
+
+  const handleDeptChange = async (e) => {
+    const deptId = e.target.value;
+    setSelectedDept(deptId);
+    setSelectedDoctorId("");
+    if (!deptId) {
+      setDoctors([]);
+      return;
+    }
+    setDoctorsLoading(true);
+    setDoctorsError(null);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/doctor-schedule/doctors/${deptId}`
+      );
+      const data = res.data?.data ?? res.data;
+      setDoctors(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setDoctorsError(err?.message || "Failed to load doctors");
+      setDoctors([]);
+    } finally {
+      setDoctorsLoading(false);
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert("Prescription Saved Successfully!");
+
+    const form = e.target;
+
+    // collect basic fields; use defaults for ids if not provided
+    const fd = new FormData(form);
+    const patientId = Number(fd.get("patientId")) || 1;
+    const doctorId = Number(fd.get("doctorId")) || 1;
+    const departmentId = Number(fd.get("departmentId")) || 1;
+    const diagnosis = fd.get("diagnosis") || "";
+    const symptoms = fd.get("symptoms") || "";
+    const additionalNotes = fd.get("additionalNotes") || "";
+    const prescriptionDate =
+      fd.get("prescriptionDate") || new Date().toISOString().split("T")[0];
+
+    // collect medicines from table rows
+    const medicineRows = Array.from(form.querySelectorAll("tbody tr"));
+    const medicines = medicineRows
+      .map((row) => {
+        const inputs = row.querySelectorAll("input");
+        return {
+          medicineName: inputs[0]?.value || "",
+          frequency: inputs[1]?.value || "",
+          duration: inputs[2]?.value || "",
+        };
+      })
+      .filter((m) => m.medicineName || m.frequency || m.duration);
+
+    const payload = {
+      patientId,
+      doctorId,
+      departmentId,
+      diagnosis,
+      symptoms,
+      additionalNotes,
+      prescriptionDate,
+      medicines,
+    };
+
+    // dispatch the thunk
+    dispatch(addPrescription(payload))
+      .unwrap()
+      .then(() => {
+        Swal.fire({
+          icon: "success",
+          title: "Saved",
+          text: "Prescription saved successfully",
+          timer: 1600,
+          showConfirmButton: false,
+        });
+        form.reset();
+        setSelectedDept("");
+        setDoctors([]);
+      })
+      .catch((err) => {
+        console.error("Add prescription failed:", err);
+        const msg =
+          err?.message || JSON.stringify(err) || "Failed to save prescription";
+        Swal.fire({ icon: "error", title: "Error", text: msg });
+      });
   };
 
   const handleReset = () => {
@@ -42,6 +145,8 @@ export default function AddNewPrescription() {
 
       <div className="card-body">
         <form onSubmit={handleSubmit} onReset={handleReset}>
+          {/* Hidden default for patientId (replace with real selector if available) */}
+          <input type="hidden" name="patientId" defaultValue="1" />
           {/* Department & Doctor */}
           <div className="row mb-3">
             <div className="col-md-6">
@@ -51,31 +156,54 @@ export default function AddNewPrescription() {
               <select
                 className="form-select"
                 required
+                name="departmentId"
                 value={selectedDept}
                 onChange={handleDeptChange}
+                disabled={departmentsLoading}
               >
-                <option value="">Select Department</option>
-                <option value="cardiology">Cardiology</option>
-                <option value="neurology">Neurology</option>
-                <option value="orthopedics">Orthopedics</option>
-                <option value="dermatology">Dermatology</option>
-                <option value="pediatrics">Pediatrics</option>
-                <option value="general">General Medicine</option>
+                <option value="">
+                  {departmentsLoading
+                    ? "Loading departments..."
+                    : "Select Department"}
+                </option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.departmentName}
+                  </option>
+                ))}
               </select>
+              {departmentsError && (
+                <div className="small text-danger mt-1">{departmentsError}</div>
+              )}
             </div>
 
             <div className="col-md-6">
               <label className="form-label fw-semibold">
                 Doctor Name <span className="text-danger">*</span>
               </label>
-              <select className="form-select" required>
-                <option value="">Select Doctor</option>
-                {doctors.map((doc, index) => (
-                  <option key={index} value={doc}>
-                    {doc}
+              <select
+                className="form-select"
+                required
+                name="doctorId"
+                value={selectedDoctorId}
+                onChange={(e) => setSelectedDoctorId(e.target.value)}
+                disabled={doctorsLoading || !selectedDept}
+              >
+                <option value="">
+                  {doctorsLoading ? "Loading doctors..." : "Select Doctor"}
+                </option>
+                {doctors.map((doc) => (
+                  <option
+                    key={doc.id || doc.doctorId}
+                    value={doc.id || doc.doctorId}
+                  >
+                    {doc.name || doc.doctorName}
                   </option>
                 ))}
               </select>
+              {doctorsError && (
+                <div className="small text-danger mt-1">{doctorsError}</div>
+              )}
             </div>
           </div>
 
@@ -117,7 +245,12 @@ export default function AddNewPrescription() {
               <label className="form-label fw-semibold">
                 Date <span className="text-danger">*</span>
               </label>
-              <input type="date" className="form-control" required />
+              <input
+                type="date"
+                className="form-control"
+                name="prescriptionDate"
+                required
+              />
             </div>
           </div>
 
@@ -128,6 +261,7 @@ export default function AddNewPrescription() {
             </label>
             <textarea
               className="form-control"
+              name="symptoms"
               rows="2"
               placeholder="Enter patient symptoms"
               required
@@ -141,6 +275,7 @@ export default function AddNewPrescription() {
             </label>
             <textarea
               className="form-control"
+              name="diagnosis"
               rows="2"
               placeholder="Enter diagnosis details"
               required
@@ -166,6 +301,7 @@ export default function AddNewPrescription() {
                     <input
                       type="text"
                       className="form-control"
+                      name="medicineName"
                       placeholder="e.g., Paracetamol"
                     />
                   </td>
@@ -173,6 +309,7 @@ export default function AddNewPrescription() {
                     <input
                       type="text"
                       className="form-control"
+                      name="frequency"
                       placeholder="2 times/day"
                     />
                   </td>
@@ -180,6 +317,7 @@ export default function AddNewPrescription() {
                     <input
                       type="text"
                       className="form-control"
+                      name="duration"
                       placeholder="5 days"
                     />
                   </td>
@@ -193,6 +331,7 @@ export default function AddNewPrescription() {
             <label className="form-label fw-semibold">Additional Notes</label>
             <textarea
               className="form-control"
+              name="additionalNotes"
               rows="2"
               placeholder="Any additional advice..."
             ></textarea>
