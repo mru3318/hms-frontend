@@ -23,7 +23,7 @@
 
 .jumbotron-hero .card-hero {
   background-color: rgba(255, 255, 255, 0.2);
-
+  z-index: 10;
   padding: 15px;
   display: flex;
   align-items: left;

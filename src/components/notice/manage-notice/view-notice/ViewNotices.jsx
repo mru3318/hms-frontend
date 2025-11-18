@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchNotices,
@@ -9,12 +9,19 @@ import {
 } from "../../../../features/noticeSlice";
 import Swal from "sweetalert2";
 import { NavLink } from "react-router-dom";
+import axios from "axios";
+import { API_BASE_URL } from "../../../../../config";
 
 const ViewNotices = () => {
   const dispatch = useDispatch();
   const notices = useSelector(selectNotices);
   const fetchStatus = useSelector(selectNoticesFetchStatus);
   const fetchError = useSelector(selectNoticesFetchError);
+  const [viewModal, setViewModal] = useState(false);
+  const [viewAttachment, setViewAttachment] = useState(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState(null);
+  const [downloadUrl, setDownloadUrl] = useState(null);
+  const [loadingFile, setLoadingFile] = useState(false);
 
   useEffect(() => {
     if (fetchStatus === "idle") dispatch(fetchNotices());
@@ -60,6 +67,111 @@ const ViewNotices = () => {
         });
     });
   };
+
+  const handleViewAttachment = async (attachmentUrl, noticeId) => {
+    // open modal immediately even if attachmentUrl is missing; effect will
+    // decide how to fetch: data URI, absolute URL, or download by notice id
+    setFilePreviewUrl(null);
+    setDownloadUrl(null);
+    setViewAttachment({ att: attachmentUrl, id: noticeId });
+    setViewModal(true);
+  };
+
+  // When modal opens with a selected attachment, load the file (supports data: URIs,
+  // absolute URLs and relative paths which we prefix with API_BASE_URL).
+  useEffect(() => {
+    let cancelled = false;
+    let createdObjectUrl = null;
+
+    const loadFile = async () => {
+      if (!viewModal || !viewAttachment) return;
+      setLoadingFile(true);
+      setFilePreviewUrl(null);
+      try {
+        const { att, id } = viewAttachment || {};
+
+        if (att && /^data:/i.test(att)) {
+          // data URI: fetch it via fetch() and convert to blob
+          const res = await fetch(att);
+          const blob = await res.blob();
+          createdObjectUrl = window.URL.createObjectURL(blob);
+          if (!cancelled) {
+            setFilePreviewUrl(createdObjectUrl);
+            setDownloadUrl(createdObjectUrl);
+          }
+        } else if (att) {
+          // Att is provided and not a data URI: use absolute URL or download endpoint with att
+          const url = /^https?:\/\//i.test(att)
+            ? att
+            : `${API_BASE_URL}/attachment/download/${att}`;
+          const response = await axios.get(url, { responseType: "blob" });
+          createdObjectUrl = window.URL.createObjectURL(response.data);
+          if (!cancelled) {
+            setFilePreviewUrl(createdObjectUrl);
+            setDownloadUrl(url);
+          }
+        } else if (id) {
+          // No attachment path provided, but we have a notice id - call download by id
+          const url = `${API_BASE_URL}/attachment/download/${id}`;
+          const response = await axios.get(url, { responseType: "blob" });
+          createdObjectUrl = window.URL.createObjectURL(response.data);
+          if (!cancelled) {
+            setFilePreviewUrl(createdObjectUrl);
+            setDownloadUrl(url);
+          }
+        } else {
+          // nothing to load
+          if (!cancelled) {
+            Swal.fire({
+              icon: "info",
+              title: "No attachment",
+              text: "No attachment is available for this notice.",
+            });
+            setViewModal(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching file:", error);
+        if (!cancelled) {
+          Swal.fire({
+            icon: "error",
+            title: "Failed to fetch file",
+            text: error?.message || "Error loading attachment",
+          });
+          setViewModal(false);
+        }
+      } finally {
+        if (!cancelled) setLoadingFile(false);
+      }
+    };
+
+    loadFile();
+
+    return () => {
+      cancelled = true;
+      if (createdObjectUrl) {
+        try {
+          window.URL.revokeObjectURL(createdObjectUrl);
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [viewModal, viewAttachment]);
+
+  // cleanup any created preview URL when filePreviewUrl changes/unmounts
+  useEffect(() => {
+    return () => {
+      if (filePreviewUrl) {
+        try {
+          window.URL.revokeObjectURL(filePreviewUrl);
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [filePreviewUrl]);
+
   return (
     <div className="full-width-card card shadow-sm border-0">
       {/* Header */}
@@ -176,19 +288,18 @@ const ViewNotices = () => {
                         />
                       </td>
                       <td>
-                        {attachmentUrl ? (
-                          <a
-                            href={attachmentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn btn-sm w-100 text-white"
-                            style={{ backgroundColor: "#01C0C8" }}
-                          >
-                            Download
-                          </a>
-                        ) : (
-                          <span className="small text-muted">-</span>
-                        )}
+                        <button
+                          className="btn btn-sm text-white"
+                          style={{ backgroundColor: "#01C0C8" }}
+                          onClick={() =>
+                            handleViewAttachment(
+                              attachmentUrl,
+                              n.id || n.noticeId || n.notice_id
+                            )
+                          }
+                        >
+                          <i className="bi bi-eye"></i>
+                        </button>
                       </td>
                       <td>
                         <div className="d-flex justify-content-center gap-2">
@@ -214,6 +325,62 @@ const ViewNotices = () => {
           </table>
         </div>
       </div>
+      {/* Modal for download confirmation */}
+      {viewModal && (
+        <>
+          <div
+            className="modal fade show"
+            style={{ display: "block", zIndex: 2000 }}
+            tabIndex="-1"
+          >
+            <div className="modal-dialog modal-lg">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">View Attachment</h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => {
+                      setViewModal(false);
+                      setFilePreviewUrl(null);
+                      setDownloadUrl(null);
+                    }}
+                  ></button>
+                </div>
+
+                <div className="modal-body text-center">
+                  {loadingFile ? (
+                    <div className="text-muted small">Loading file...</div>
+                  ) : filePreviewUrl ? (
+                    <>
+                      {/* Auto preview PDF / image */}
+                      <iframe
+                        src={filePreviewUrl}
+                        title="preview"
+                        width="100%"
+                        height="400px"
+                      ></iframe>
+
+                      {/* Download button */}
+                      <a
+                        href={downloadUrl || filePreviewUrl}
+                        download
+                        className="btn btn-success mt-3"
+                      >
+                        Download File
+                      </a>
+                    </>
+                  ) : (
+                    <p>No preview available</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* backdrop so modal shows above other elements */}
+          <div className="modal-backdrop fade show" style={{ zIndex: 1995 }} />
+        </>
+      )}
     </div>
   );
 };
