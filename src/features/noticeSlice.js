@@ -50,7 +50,16 @@ export const updateNotice = createAsyncThunk(
   "notice/updateNotice",
   async ({ id, payload }, { rejectWithValue }) => {
     try {
-      const res = await axios.put(`${API_BASE_URL}/notices/${id}`, payload);
+      const isForm =
+        typeof FormData !== "undefined" && payload instanceof FormData;
+      const config = isForm
+        ? { headers: { "Content-Type": "multipart/form-data" } }
+        : { headers: { "Content-Type": "application/json" } };
+      const res = await axios.put(
+        `${API_BASE_URL}/notices/${id}`,
+        payload,
+        config
+      );
       return res.data?.data ?? res.data;
     } catch (err) {
       const message =

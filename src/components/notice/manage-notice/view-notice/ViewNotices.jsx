@@ -192,13 +192,13 @@ const ViewNotices = () => {
                       </td>
                       <td>
                         <div className="d-flex justify-content-center gap-2">
-                          <a
-                            href="#"
+                          <NavLink
+                            to={`/dashboard/edit-notice/${n.id || n.noticeId}`}
                             className="btn btn-sm text-white px-3"
                             style={{ backgroundColor: "#01C0C8" }}
                           >
                             Edit
-                          </a>
+                          </NavLink>
                           <button
                             className="btn btn-danger btn-sm px-3"
                             onClick={() => handleDelete(n.id || n.noticeId)}

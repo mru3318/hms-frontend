@@ -49,6 +49,7 @@ import AddNewPrescription from "./components/prescriptions/add-new-prescription/
 import ManagePrescription from "./components/prescriptions/manage-priscription/ManagePrescription";
 import PathologyReportList from "./components/reports/pathalogy/manage-pathalogy-report/PathologyReportList";
 import RadiologyReportList from "./components/reports/radiology/manage-radiology-report/RadiologyReportList";
+import EditNotice from "./components/notice/manage-notice/edit-notice/EditNotice";
 
 function App() {
   const router = createBrowserRouter([
@@ -134,6 +135,10 @@ function App() {
         {
           path: "add-new-notice",
           element: <CreateNotice />,
+        },
+        {
+          path: "edit-notice/:id",
+          element: <EditNotice />,
         },
 
         //Department Routes
