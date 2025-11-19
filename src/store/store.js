@@ -12,6 +12,8 @@ import bedReducer from "../features/bedSlice";
 import ambulanceReducer from "../features/ambulanceSlice";
 import priscriptionReducer from "../features/priscriptionSlice";
 import noticeReducer from "../features/noticeSlice";
+import commanReducer from "../features/commanSlice";
+import appointmentReducer from "../features/appointmentSlice";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +30,8 @@ export const store = configureStore({
     ambulance: ambulanceReducer,
     priscription: priscriptionReducer,
     notice: noticeReducer,
+    comman: commanReducer,
+    appointment: appointmentReducer,
   },
 });
 

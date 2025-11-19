@@ -1057,10 +1057,10 @@ const Layout = () => {
               </div>
             </li>
             <li className="nav-item">
-              <a className="nav-link" href="#">
+              <NavLink className="nav-link" to="settings">
                 <span className="menu-title">Settings</span>
                 <i className="fa fa-cog menu-icon" />
-              </a>
+              </NavLink>
             </li>
           </ul>
         </nav>

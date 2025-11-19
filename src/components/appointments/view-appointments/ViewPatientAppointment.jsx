@@ -1,30 +1,24 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchAppointments,
+  selectAppointments,
+  selectAppointmentsStatus,
+  selectAppointmentsError,
+} from "../../../features/appointmentSlice";
+import { updateAppointmentStatus } from "../../../features/appointmentSlice";
+import Swal from "sweetalert2";
 
 export default function ViewPatientAppointment() {
-  const [appointments, setAppointments] = useState([
-    {
-      patient: "Rohan Das",
-      age: "28",
-      phone: "9876543210",
-      doctor: "Dr. Anita Sharma",
-      date: "15-02-2025",
-      time: "11:00 AM – 12:00 PM",
-      status: "Pending",
-    },
-    {
-      patient: "Neha Verma",
-      age: "32",
-      phone: "9988776655",
-      doctor: "Dr. Rakesh Patil",
-      date: "20-02-2025",
-      time: "02:00 PM – 03:00 PM",
-      status: "Approved",
-    },
-  ]);
+  const dispatch = useDispatch();
+  const rawAppointments = useSelector(selectAppointments);
+  const appointmentsStatus = useSelector(selectAppointmentsStatus);
+  const appointmentsError = useSelector(selectAppointmentsError);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  // index not needed (view-only)
 
   const [modalData, setModalData] = useState({
     patient: "",
@@ -33,7 +27,7 @@ export default function ViewPatientAppointment() {
     doctor: "",
     date: "",
     time: "",
-    status: "Pending",
+    status: "SCHEDULED",
   });
 
   const modalRef = useRef(null);
@@ -45,59 +39,122 @@ export default function ViewPatientAppointment() {
   };
 
   // CLOSE MODAL
-  const closeModal = () => {
-    const modal = window.bootstrap.Modal.getInstance(modalRef.current);
-    modal.hide();
-  };
+  // closeModal kept for potential future use (not referenced now)
 
-  // VIEW ROW
-  const viewRow = (index) => {
-    setSelectedIndex(null); // hide save button
-    setModalData(appointments[index]);
-    openModal();
-  };
-
-  // EDIT ROW
-  const editRow = (index) => {
-    setSelectedIndex(index); // show save button
-    setModalData(appointments[index]);
-    openModal();
-  };
-
-  // DELETE ROW
-  const deleteRow = (index) => {
-    if (window.confirm("Are you sure you want to delete this appointment?")) {
-      setAppointments((prev) => prev.filter((_, i) => i !== index));
+  const formatError = (err) => {
+    if (!err) return "Unknown error";
+    if (typeof err === "string") return err;
+    if (err.message) return err.message;
+    if (err.error) return err.error;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
     }
   };
 
-  // SAVE CHANGES
-  const saveChanges = () => {
-    if (selectedIndex === null) return;
+  // Fetch appointments on mount or when idle
+  useEffect(() => {
+    if (appointmentsStatus === "idle") {
+      dispatch(fetchAppointments());
+    }
+  }, [appointmentsStatus, dispatch]);
 
-    const updatedList = [...appointments];
-    updatedList[selectedIndex] = modalData;
-    setAppointments(updatedList);
+  // Derive normalized display data from raw appointments
+  const appointments = useMemo(
+    () =>
+      (rawAppointments || []).map((a) => {
+        const patientName =
+          a.patient?.name ||
+          a.patientName ||
+          (a.patient_first_name || a.patientLastName
+            ? `${a.patient_first_name || ""} ${
+                a.patient_last_name || ""
+              }`.trim()
+            : a.patient) ||
+          "";
+        const rawStatus = a.status || a.appointmentStatus || "SCHEDULED";
+        const upperStatus = String(rawStatus).toUpperCase();
+        const allowedStatuses = ["SCHEDULED", "COMPLETED", "CANCELLED"];
+        const normalizedStatus = allowedStatuses.includes(upperStatus)
+          ? upperStatus
+          : "SCHEDULED";
+        const idValue =
+          a.id ||
+          a.appointmentId ||
+          a.appointment_id ||
+          a.appointment?.id ||
+          "";
+        const patientHospitalIdValue =
+          a.patientHospitalId ||
+          a.patient_hospital_id ||
+          a.patient?.patientHospitalId ||
+          a.patient?.patient_hospital_id ||
+          // fallbacks to older ID fields if hospital-specific ID absent
+          a.patientId ||
+          a.patient_id ||
+          a.patient?.id ||
+          a.patient?.patientId ||
+          a.patient?.patient_id ||
+          "";
+        return {
+          id: idValue,
+          patientHospitalId: patientHospitalIdValue || "—",
+          patient: patientName || "—",
+          age: a.patient?.age || a.age || a.patientAge || "—",
+          phone:
+            a.patientContact ||
+            a.patient?.patientContact ||
+            a.patient?.contactInfo ||
+            a.phone ||
+            a.patientPhone ||
+            "—",
+          doctor:
+            a.doctor?.name ||
+            a.doctorName ||
+            a.doctor?.fullName ||
+            a.doctor ||
+            "—",
+          date: a.appointmentDate || a.date || "—",
+          time: a.appointmentTime || a.time || "—",
+          status: normalizedStatus,
+        };
+      }),
+    [rawAppointments]
+  );
 
-    closeModal();
+  // VIEW ROW (read-only)
+  const viewRow = (index) => {
+    setModalData(appointments[index]);
+    openModal();
   };
 
   // STATUS COLOR MAP
   const statusColor = (status) => {
-    return {
-      Pending: "warning text-dark",
-      Approved: "success",
-      Completed: "secondary",
-      Cancelled: "danger",
-    }[status];
+    return (
+      {
+        SCHEDULED: "info",
+        COMPLETED: "success",
+        CANCELLED: "danger",
+      }[status] || "secondary"
+    );
   };
 
   // FILTER APPOINTMENTS
   const filteredAppointments = appointments.filter((a) => {
+    const needle = String(search || "")
+      .trim()
+      .toLowerCase();
     const matchSearch =
-      a.patient.toLowerCase().includes(search.toLowerCase()) ||
-      a.phone.includes(search) ||
-      a.doctor.toLowerCase().includes(search.toLowerCase());
+      needle === "" ||
+      a.patient.toLowerCase().includes(needle) ||
+      String(a.patientHospitalId || "")
+        .toLowerCase()
+        .includes(needle) ||
+      String(a.phone || "")
+        .toLowerCase()
+        .includes(needle) ||
+      a.doctor.toLowerCase().includes(needle);
 
     const matchStatus =
       statusFilter === "" ||
@@ -136,10 +193,9 @@ export default function ViewPatientAppointment() {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">Filter by Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
+              <option value="SCHEDULED">Scheduled</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
         </div>
@@ -149,6 +205,7 @@ export default function ViewPatientAppointment() {
           <table className="table table-bordered table-hover">
             <thead className="bg-info text-white">
               <tr>
+                <th>Patient Hospital ID</th>
                 <th>Patient</th>
                 <th>Age</th>
                 <th>Phone</th>
@@ -163,6 +220,7 @@ export default function ViewPatientAppointment() {
             <tbody>
               {filteredAppointments.map((a, index) => (
                 <tr key={index}>
+                  <td>{a.patientHospitalId}</td>
                   <td>{a.patient}</td>
                   <td>{a.age}</td>
                   <td>{a.phone}</td>
@@ -176,28 +234,33 @@ export default function ViewPatientAppointment() {
                   </td>
                   <td className="text-center">
                     <button
-                      className="btn btn-info btn-sm me-1"
+                      className="btn btn-info btn-sm"
                       onClick={() => viewRow(index)}
+                      title="View details"
                     >
                       <i className="bi bi-eye"></i>
-                    </button>
-                    <button
-                      className="btn btn-primary btn-sm me-1"
-                      onClick={() => editRow(index)}
-                    >
-                      <i className="bi bi-pencil-square"></i>
-                    </button>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => deleteRow(index)}
-                    >
-                      <i className="bi bi-trash"></i>
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {appointmentsStatus === "loading" && (
+            <div className="text-center py-2 small">
+              Loading appointments...
+            </div>
+          )}
+          {appointmentsStatus === "failed" && (
+            <div className="text-center text-danger py-2 small">
+              Failed to load appointments: {String(appointmentsError)}
+            </div>
+          )}
+          {appointmentsStatus === "succeeded" &&
+            filteredAppointments.length === 0 && (
+              <div className="text-center py-2 small">
+                No appointments match filters.
+              </div>
+            )}
         </div>
       </div>
 
@@ -296,24 +359,58 @@ export default function ViewPatientAppointment() {
                 <select
                   className="form-select"
                   value={modalData.status}
-                  onChange={(e) =>
-                    setModalData({ ...modalData, status: e.target.value })
-                  }
+                  disabled={updatingStatus}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value;
+                    const prevStatus = modalData.status;
+                    setModalData({ ...modalData, status: newStatus });
+                    if (!modalData.id) {
+                      // no id to update; revert and warn
+                      setModalData({ ...modalData, status: prevStatus });
+                      window.alert(
+                        "Appointment ID missing; cannot update status."
+                      );
+                      return;
+                    }
+                    try {
+                      setUpdatingStatus(true);
+                      await dispatch(
+                        updateAppointmentStatus({
+                          id: modalData.id,
+                          status: newStatus,
+                        })
+                      ).unwrap();
+                      if (newStatus === "COMPLETED") {
+                        Swal.fire({
+                          title: "Completed",
+                          text: "Appointment marked as Completed.",
+                          icon: "success",
+                          timer: 1600,
+                          showConfirmButton: false,
+                        });
+                      }
+                      // Optionally refresh list to ensure consistency
+                      // dispatch(fetchAppointments());
+                    } catch (err) {
+                      setModalData({ ...modalData, status: prevStatus });
+                      Swal.fire({
+                        title: "Update Failed",
+                        text: formatError(err),
+                        icon: "error",
+                      });
+                    } finally {
+                      setUpdatingStatus(false);
+                    }
+                  }}
                 >
-                  <option>Pending</option>
-                  <option>Approved</option>
-                  <option>Completed</option>
-                  <option>Cancelled</option>
+                  <option value="SCHEDULED">Scheduled</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
                 </select>
               </div>
             </div>
 
             <div className="modal-footer">
-              {selectedIndex !== null && (
-                <button className="btn btn-success" onClick={saveChanges}>
-                  Save Changes
-                </button>
-              )}
               <button className="btn btn-secondary" data-bs-dismiss="modal">
                 Close
               </button>
@@ -321,13 +418,6 @@ export default function ViewPatientAppointment() {
           </div>
         </div>
       </div>
-
-      {/* Bootstrap CDN */}
-      <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-      />
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     </>
   );
 }

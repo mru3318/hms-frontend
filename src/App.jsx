@@ -50,6 +50,7 @@ import ManagePrescription from "./components/prescriptions/manage-priscription/M
 import PathologyReportList from "./components/reports/pathalogy/manage-pathalogy-report/PathologyReportList";
 import RadiologyReportList from "./components/reports/radiology/manage-radiology-report/RadiologyReportList";
 import EditNotice from "./components/notice/manage-notice/edit-notice/EditNotice";
+import Settings from "./components/setting/Settings";
 
 function App() {
   const router = createBrowserRouter([
@@ -286,6 +287,10 @@ function App() {
         {
           path: "manage-prescriptions",
           element: <ManagePrescription />,
+        },
+        {
+          path: "settings",
+          element: <Settings />,
         },
       ],
     },
