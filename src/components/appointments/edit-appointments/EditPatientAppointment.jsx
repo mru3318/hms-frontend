@@ -145,14 +145,18 @@ export default function EditPatientAppointment() {
     try {
       if (appointmentId) {
         // Edit existing appointment via Redux thunk
-        await dispatch(
+        const res = await dispatch(
           updateAppointment({ id: appointmentId, data: payload })
         ).unwrap();
-        Swal.fire({ icon: "success", title: "Appointment updated" });
+        const successMsg =
+          res?.message ?? res?.data?.message ?? "Appointment updated";
+        await Swal.fire({ icon: "success", title: successMsg });
         navigate("/dashboard/view-patient-appointments");
       } else {
-        await dispatch(createAppointment(payload)).unwrap();
-        Swal.fire({ icon: "success", title: "Appointment created" });
+        const res = await dispatch(createAppointment(payload)).unwrap();
+        const successMsg =
+          res?.message ?? res?.data?.message ?? "Appointment created";
+        await Swal.fire({ icon: "success", title: successMsg });
 
         // Reset
         setSelectedPatientHospitalId("");
@@ -170,10 +174,12 @@ export default function EditPatientAppointment() {
         setStatus("SCHEDULED");
       }
     } catch (err) {
+      const backendMsg =
+        err?.response?.data?.message || err?.message || JSON.stringify(err);
       Swal.fire({
         icon: "error",
         title: "Failed",
-        text: err?.message || JSON.stringify(err),
+        text: backendMsg,
       });
     }
   };

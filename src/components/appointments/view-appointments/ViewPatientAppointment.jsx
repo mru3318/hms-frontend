@@ -20,7 +20,6 @@ export default function ViewPatientAppointment() {
   const [statusFilter, setStatusFilter] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   // index not needed (view-only)
-
   const [modalData, setModalData] = useState({
     patient: "",
     age: "",
@@ -29,26 +28,26 @@ export default function ViewPatientAppointment() {
     date: "",
     time: "",
     status: "SCHEDULED",
+    id: null,
   });
 
   const modalRef = useRef(null);
 
-  // OPEN MODAL
   const openModal = () => {
-    const modal = new window.bootstrap.Modal(modalRef.current);
-    modal.show();
+    try {
+      if (modalRef.current) {
+        const m = new window.bootstrap.Modal(modalRef.current);
+        m.show();
+      }
+    } catch {
+      // ignore if bootstrap modal unavailable
+    }
   };
-
-  // CLOSE MODAL
-  // closeModal kept for potential future use (not referenced now)
 
   const formatError = (err) => {
     if (!err) return "Unknown error";
-    if (typeof err === "string") return err;
-    if (err.message) return err.message;
-    if (err.error) return err.error;
     try {
-      return JSON.stringify(err);
+      return err?.response?.data?.message || err?.message || String(err);
     } catch {
       return String(err);
     }
@@ -393,21 +392,26 @@ export default function ViewPatientAppointment() {
                     }
                     try {
                       setUpdatingStatus(true);
-                      await dispatch(
+                      const res = await dispatch(
                         updateAppointmentStatus({
                           id: modalData.id,
                           status: newStatus,
                         })
                       ).unwrap();
-                      if (newStatus === "COMPLETED") {
-                        Swal.fire({
-                          title: "Completed",
-                          text: "Appointment marked as Completed.",
-                          icon: "success",
-                          timer: 1600,
-                          showConfirmButton: false,
-                        });
-                      }
+
+                      const backendMsg =
+                        res?.message ||
+                        (res?.data && res.data.message) ||
+                        (newStatus === "COMPLETED"
+                          ? "Appointment marked as Completed."
+                          : "Status updated.");
+
+                      Swal.fire({
+                        title: backendMsg,
+                        icon: "success",
+                        timer: 1600,
+                        showConfirmButton: false,
+                      });
                       // Optionally refresh list to ensure consistency
                       // dispatch(fetchAppointments());
                     } catch (err) {
