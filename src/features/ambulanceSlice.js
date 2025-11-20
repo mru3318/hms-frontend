@@ -89,6 +89,27 @@ export const fetchAssignments = createAsyncThunk(
   }
 );
 
+// Fetch completed/ historical ambulance assignments
+export const fetchAssignmentHistory = createAsyncThunk(
+  "ambulance/fetchAssignmentHistory",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/ambulance/assignments/history");
+      return res.data;
+    } catch (err) {
+      const payload = err.response
+        ? {
+            message:
+              err.response.data?.message || err.response.data || err.message,
+            status: err.response.status,
+            url: err.config?.url,
+          }
+        : { message: err.message || "Network error", code: err.code };
+      return rejectWithValue(payload);
+    }
+  }
+);
+
 // Add a new ambulance
 export const addAmbulance = createAsyncThunk(
   "ambulance/addAmbulance",
@@ -271,6 +292,9 @@ const initialState = {
   addAssignmentError: null,
   updateAssignmentStatus: "idle",
   updateAssignmentError: null,
+  assignmentHistory: [],
+  assignmentHistoryStatus: "idle",
+  assignmentHistoryError: null,
 };
 
 const ambulanceSlice = createSlice({
@@ -457,6 +481,31 @@ const ambulanceSlice = createSlice({
         state.updateAssignmentStatus = "failed";
         state.updateAssignmentError = action.payload || action.error.message;
       });
+
+    // fetch assignment history
+    builder
+      .addCase(fetchAssignmentHistory.pending, (state) => {
+        state.assignmentHistoryStatus = "loading";
+        state.assignmentHistoryError = null;
+      })
+      .addCase(fetchAssignmentHistory.fulfilled, (state, action) => {
+        state.assignmentHistoryStatus = "succeeded";
+        if (action.payload && action.payload.data) {
+          state.assignmentHistory = Array.isArray(action.payload.data)
+            ? action.payload.data
+            : [action.payload.data];
+        } else if (Array.isArray(action.payload)) {
+          state.assignmentHistory = action.payload;
+        } else if (action.payload) {
+          state.assignmentHistory = [action.payload];
+        } else {
+          state.assignmentHistory = [];
+        }
+      })
+      .addCase(fetchAssignmentHistory.rejected, (state, action) => {
+        state.assignmentHistoryStatus = "failed";
+        state.assignmentHistoryError = action.payload || action.error.message;
+      });
   },
 });
 
@@ -476,6 +525,12 @@ export const selectAssignmentsStatus = (state) =>
   state.ambulance?.assignmentsStatus;
 export const selectAssignmentsError = (state) =>
   state.ambulance?.assignmentsError;
+export const selectAssignmentHistory = (state) =>
+  state.ambulance?.assignmentHistory;
+export const selectAssignmentHistoryStatus = (state) =>
+  state.ambulance?.assignmentHistoryStatus;
+export const selectAssignmentHistoryError = (state) =>
+  state.ambulance?.assignmentHistoryError;
 export const selectAmbulanceFormData = (state) =>
   state.ambulance?.formDataOptions;
 export const selectAmbulanceFormDataStatus = (state) =>

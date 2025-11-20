@@ -59,9 +59,6 @@ const AmbulanceDashboard = () => {
           <i className="fa-solid fa-truck-medical"></i>
           <h4 className="mb-0">Ambulance Management Dashboard</h4>
         </div>
-        <button className="btn btn-success btn-sm position-absolute top-50 end-0 translate-middle-y me-3 button">
-          Allotted Ambulances
-        </button>
       </div>
 
       {/* ============================ */}
