@@ -243,6 +243,17 @@ export default function ViewPatientAppointment() {
                     </button>
                     <NavLink
                       to={`/dashboard/edit-patient-appointment/${a.id}`}
+                      state={{
+                        fromList: true,
+                        appointment:
+                          rawAppointments.find(
+                            (r) =>
+                              (r.id ||
+                                r.appointmentId ||
+                                r.appointment_id ||
+                                r.appointment?.id) == a.id
+                          ) || a,
+                      }}
                       className="btn btn-secondary btn-sm ms-2"
                       title="View full appointment page"
                     >

@@ -5,19 +5,24 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   selectPatients,
   selectDepartments,
+  fetchPatients,
+  fetchDepartments,
 } from "../../../features/commanSlice";
 import {
   createAppointment,
   updateAppointment,
 } from "../../../features/appointmentSlice";
 import Swal from "sweetalert2";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 export default function EditPatientAppointment() {
   const dispatch = useDispatch();
   const params = useParams();
   const navigate = useNavigate();
   const appointmentId = params?.id || null;
+  const location = useLocation();
+  const isFromList = location?.state?.fromList === true;
+  const navAppointment = location?.state?.appointment || null;
 
   // Read from Redux only
   const patients = useSelector(selectPatients);
@@ -39,15 +44,18 @@ export default function EditPatientAppointment() {
   const [appointmentTime, setAppointmentTime] = useState("");
   const [symptoms, setSymptoms] = useState("");
   const [status, setStatus] = useState("SCHEDULED");
+  const [appointmentLoaded, setAppointmentLoaded] = useState(false);
+  const [prefilling, setPrefilling] = useState(false);
 
   // store departments into local state
   useEffect(() => {
     setDepartments(Array.isArray(storeDepartments) ? storeDepartments : []);
   }, [storeDepartments]);
 
-  // autofill patient info
+  // autofill patient info when a patient_hospital_id is selected
   useEffect(() => {
     if (!selectedPatientHospitalId) return;
+    if (prefilling) return; // avoid overwriting fields during initial prefill
 
     const p = patients.find(
       (x) => String(x.patient_hospital_id) === String(selectedPatientHospitalId)
@@ -64,12 +72,22 @@ export default function EditPatientAppointment() {
         : "";
       setAddress(addr);
     } else {
+      // In edit mode, don't clear if we don't find the patient in store
+      if (appointmentId) return;
+
+      // Only clear for create flow when no selection data is available
       setAge("");
       setGender("");
       setPhone("");
       setAddress("");
     }
-  }, [selectedPatientHospitalId, patients]);
+  }, [
+    selectedPatientHospitalId,
+    patients,
+    appointmentId,
+    appointmentLoaded,
+    prefilling,
+  ]);
 
   // submit appointment
   const handleSubmit = async (e) => {
@@ -131,7 +149,7 @@ export default function EditPatientAppointment() {
           updateAppointment({ id: appointmentId, data: payload })
         ).unwrap();
         Swal.fire({ icon: "success", title: "Appointment updated" });
-        navigate("/dashboard/view-appointments");
+        navigate("/dashboard/view-patient-appointments");
       } else {
         await dispatch(createAppointment(payload)).unwrap();
         Swal.fire({ icon: "success", title: "Appointment created" });
@@ -162,10 +180,162 @@ export default function EditPatientAppointment() {
 
   // If editing an appointment, fetch its data and populate the form
   useEffect(() => {
-    if (!appointmentId) return;
+    // Only auto-fetch & populate when the user navigated from the appointments list
+    // (clicking Edit). When the page is loaded directly / refreshed we skip populating
+    // so patient contact fields remain empty as requested.
+    if (!appointmentId || !isFromList) return;
+
+    // If the link passed the appointment in navigation state, use it for instant population
+    if (navAppointment) {
+      setPrefilling(true);
+      const data = navAppointment || {};
+
+      const pid = data.patient_id ?? data.patientId ?? data.patient?.id;
+      const doctor = data.doctor_id ?? data.doctorId ?? data.doctor?.id;
+      const dept =
+        data.department_id ?? data.departmentId ?? data.department?.id;
+
+      // Use patient's hospital id for selection if available
+      const patientHospitalId =
+        data.patientHospitalId ??
+        data.patient_hospital_id ??
+        data.patient?.patientHospitalId ??
+        data.patient?.patient_hospital_id ??
+        pid;
+      setSelectedPatientHospitalId(patientHospitalId || "");
+
+      // Find the patient in the store using hospital ID to get full details (gender, address)
+      const fullPatient = patients.find(
+        (p) =>
+          String(p.patient_hospital_id || p.patientHospitalId) ===
+            String(patientHospitalId) || String(p.id) === String(pid)
+      );
+
+      // Populate patient display/name
+      const patientObj = data.patient || fullPatient || null;
+      const nameFromData =
+        (patientObj && (patientObj.firstName || patientObj.first_name)) ||
+        data.patientName ||
+        data.patient ||
+        "";
+      const lastFromData =
+        (patientObj && (patientObj.lastName || patientObj.last_name)) || "";
+      const displayName = `${nameFromData} ${lastFromData}`.trim();
+      setPatientQuery(
+        displayName ? `${displayName} (${patientHospitalId || ""})` : ""
+      );
+
+      // Populate patient contact fields - prefer full patient from store, fallback to appointment data
+      setAge(
+        fullPatient?.age ?? patientObj?.age ?? data.age ?? data.patientAge ?? ""
+      );
+      setGender(
+        fullPatient?.gender ??
+          patientObj?.gender ??
+          data.gender ??
+          data.patientGender ??
+          ""
+      );
+      setPhone(
+        fullPatient?.contactInfo ??
+          fullPatient?.emergencyContact ??
+          patientObj?.contactInfo ??
+          patientObj?.emergencyContact ??
+          data.contactInfo ??
+          data.phone ??
+          data.patientPhone ??
+          data.patientContact ??
+          ""
+      );
+
+      const addrSource =
+        fullPatient?.address || patientObj?.address || data.address || null;
+      const addrVal = addrSource
+        ? `${addrSource.addressLine || addrSource.address_line || ""}, ${
+            addrSource.city || ""
+          }, ${addrSource.state || ""} ${
+            addrSource.pincode || addrSource.postal || ""
+          }`
+            .trim()
+            .replace(/^,\s*|,\s*$/g, "")
+            .replace(/,\s*,/g, ",")
+        : "";
+      setAddress(addrVal);
+
+      setSelectedDepartmentId(dept ? String(dept) : "");
+      setSelectedDoctorId(doctor ? String(doctor) : "");
+      setAppointmentDate(data.appointmentDate ?? data.appointment_date ?? "");
+      setAppointmentTime(data.appointmentTime ?? data.appointment_time ?? "");
+      setSymptoms(data.symptoms ?? "");
+      setStatus(data.status ?? "SCHEDULED");
+
+      // load doctors for department if present and fetch patient details if missing
+      (async () => {
+        if (dept) {
+          try {
+            const dr = await axios.get(`${API_BASE_URL}/doctor/${dept}`);
+            setDoctors(dr.data || []);
+          } catch {
+            // ignore
+          }
+        }
+
+        // ensure departments loaded if needed
+        if (
+          dept &&
+          (!Array.isArray(storeDepartments) || storeDepartments.length === 0)
+        ) {
+          try {
+            await dispatch(fetchDepartments()).unwrap();
+          } catch {
+            // ignore
+          }
+        }
+
+        // If we couldn't get full patient details from store initially, fetch patients now
+        if (!fullPatient && patientHospitalId) {
+          try {
+            const fetched = await dispatch(fetchPatients()).unwrap();
+            const list = Array.isArray(fetched) ? fetched : fetched?.data || [];
+            const found = list.find(
+              (x) =>
+                String(x.patient_hospital_id || x.patientHospitalId) ===
+                  String(patientHospitalId) || String(x.id) === String(pid)
+            );
+            if (found) {
+              setGender((prev) => prev || found.gender || "");
+              const addrSrc = found.address || null;
+              const addrText = addrSrc
+                ? `${addrSrc.addressLine || addrSrc.address_line || ""}, ${
+                    addrSrc.city || ""
+                  }, ${addrSrc.state || ""} ${
+                    addrSrc.pincode || addrSrc.postal || ""
+                  }`
+                    .trim()
+                    .replace(/^,\s*|,\s*$/g, "")
+                    .replace(/,\s*,/g, ",")
+                : "";
+              setAddress((prev) => prev || addrText);
+              setPhone(
+                (prev) =>
+                  prev || found.contactInfo || found.emergencyContact || ""
+              );
+              setAge((prev) => prev || found.age || "");
+            }
+          } catch {
+            // ignore
+          }
+        }
+      })();
+
+      setAppointmentLoaded(true);
+      setPrefilling(false);
+      return;
+    }
 
     let mounted = true;
     (async () => {
+      setPrefilling(true);
       try {
         const res = await axios.get(
           `${API_BASE_URL}/appointment/${appointmentId}`
@@ -183,23 +353,88 @@ export default function EditPatientAppointment() {
         const patientHospitalId =
           data.patient_hospital_id ?? data.patient?.patient_hospital_id ?? pid;
         setSelectedPatientHospitalId(patientHospitalId || "");
-        if (data.patient) {
-          const name = `${
-            data.patient.firstName || data.patient.first_name || ""
-          } ${data.patient.lastName || data.patient.last_name || ""}`.trim();
-          setPatientQuery(
-            name
-              ? `${name} (${
-                  data.patient.patient_hospital_id ||
-                  data.patient_hospital_id ||
-                  ""
-                })`
-              : ""
+
+        // Populate patient display/name and contact fields from fetched data
+        let patientObj = data.patient || null;
+
+        // If appointment response did not include patient details, try to find in redux store
+        if (!patientObj && pid) {
+          const found = (patients || []).find(
+            (x) =>
+              String(x.id) === String(pid) ||
+              String(x.patient_hospital_id) === String(patientHospitalId)
           );
+          if (found) {
+            patientObj = found;
+          } else {
+            try {
+              const fetched = await dispatch(fetchPatients()).unwrap();
+              const list = Array.isArray(fetched)
+                ? fetched
+                : fetched?.data || [];
+              const found2 = list.find(
+                (x) =>
+                  String(x.id) === String(pid) ||
+                  String(x.patient_hospital_id) === String(patientHospitalId)
+              );
+              if (found2) patientObj = found2;
+            } catch {
+              // ignore
+            }
+          }
         }
 
-        setSelectedDepartmentId(dept || "");
-        setSelectedDoctorId(doctor || "");
+        const nameFromData =
+          (patientObj && (patientObj.firstName || patientObj.first_name)) ||
+          data.patientName ||
+          "";
+        const lastFromData =
+          (patientObj && (patientObj.lastName || patientObj.last_name)) || "";
+        const displayName = `${nameFromData} ${lastFromData}`.trim();
+        setPatientQuery(
+          displayName ? `${displayName} (${patientHospitalId || ""})` : ""
+        );
+
+        // Fill age/gender/phone/address from all possible sources
+        setAge(patientObj?.age ?? data.age ?? data.patientAge ?? "");
+        setGender(
+          patientObj?.gender ?? data.gender ?? data.patientGender ?? ""
+        );
+        setPhone(
+          patientObj?.contactInfo ??
+            patientObj?.emergencyContact ??
+            data.contactInfo ??
+            data.phone ??
+            data.patientPhone ??
+            data.patientContact ??
+            ""
+        );
+
+        const addrFromData = patientObj?.address || data.address || null;
+        const addr = addrFromData
+          ? `${addrFromData.addressLine || addrFromData.address_line || ""}, ${
+              addrFromData.city || ""
+            }, ${addrFromData.state || ""} ${
+              addrFromData.pincode || addrFromData.postal || ""
+            }`
+          : "";
+        setAddress(addr);
+
+        // Normalize ids to strings for select controls
+        setSelectedDepartmentId(dept ? String(dept) : "");
+        setSelectedDoctorId(doctor ? String(doctor) : "");
+
+        // If department is present but store doesn't have departments loaded, fetch them
+        if (
+          dept &&
+          (!Array.isArray(storeDepartments) || storeDepartments.length === 0)
+        ) {
+          try {
+            await dispatch(fetchDepartments()).unwrap();
+          } catch {
+            // ignore
+          }
+        }
         setAppointmentDate(data.appointmentDate ?? data.appointment_date ?? "");
         setAppointmentTime(data.appointmentTime ?? data.appointment_time ?? "");
         setSymptoms(data.symptoms ?? "");
@@ -214,6 +449,8 @@ export default function EditPatientAppointment() {
             // ignore
           }
         }
+        // mark that appointment data has been applied to the form
+        setAppointmentLoaded(true);
       } catch (err) {
         Swal.fire({
           icon: "error",
@@ -221,12 +458,20 @@ export default function EditPatientAppointment() {
           text: err?.message || "",
         });
       }
+      setPrefilling(false);
     })();
 
     return () => {
       mounted = false;
     };
-  }, [appointmentId]);
+  }, [
+    appointmentId,
+    dispatch,
+    patients,
+    storeDepartments,
+    isFromList,
+    navAppointment,
+  ]);
 
   return (
     <div className="full-width-card card shadow border-0">
