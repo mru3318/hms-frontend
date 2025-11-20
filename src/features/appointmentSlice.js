@@ -23,6 +23,25 @@ export const createAppointment = createAsyncThunk(
   }
 );
 
+// Update appointment thunk
+export const updateAppointment = createAsyncThunk(
+  "appointment/update",
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const body = {
+        ...data,
+        patient_id: data.patientId ?? data.patient_id ?? null,
+        doctor_id: data.doctorId ?? data.doctor_id ?? null,
+        department_id: data.departmentId ?? data.department_id ?? null,
+      };
+      const res = await axios.put(`${API_BASE_URL}/appointment/${id}`, body);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 // Fetch all appointments
 export const fetchAppointments = createAsyncThunk(
   "appointment/fetchAll",
@@ -75,6 +94,9 @@ const appointmentSlice = createSlice({
     createStatus: "idle",
     createError: null,
     lastCreated: null,
+    updateStatus: "idle",
+    updateError: null,
+    lastUpdated: null,
     list: [],
     listStatus: "idle",
     listError: null,
@@ -84,6 +106,9 @@ const appointmentSlice = createSlice({
       state.createStatus = "idle";
       state.createError = null;
       state.lastCreated = null;
+      state.updateStatus = "idle";
+      state.updateError = null;
+      state.lastUpdated = null;
     },
   },
   extraReducers: (builder) => {
@@ -132,6 +157,33 @@ const appointmentSlice = createSlice({
       .addCase(updateAppointmentStatus.rejected, () => {
         // no state change; UI may show error
       });
+
+    // updateAppointment lifecycle
+    builder
+      .addCase(updateAppointment.pending, (state) => {
+        state.updateStatus = "loading";
+        state.updateError = null;
+      })
+      .addCase(updateAppointment.fulfilled, (state, action) => {
+        state.updateStatus = "succeeded";
+        state.lastUpdated = action.payload;
+
+        const updated = action.payload || {};
+        const id =
+          updated.id ?? updated.appointmentId ?? updated.appointment_id;
+        const idx = state.list.findIndex(
+          (it) =>
+            String(it?.id ?? it?.appointmentId ?? it?.appointment_id) ===
+            String(id)
+        );
+        if (idx !== -1) {
+          state.list[idx] = { ...state.list[idx], ...updated };
+        }
+      })
+      .addCase(updateAppointment.rejected, (state, action) => {
+        state.updateStatus = "failed";
+        state.updateError = action.payload || action.error.message;
+      });
   },
 });
 
@@ -143,6 +195,12 @@ export const selectCreateError = (state) =>
   state.appointment?.createError || null;
 export const selectLastCreated = (state) =>
   state.appointment?.lastCreated || null;
+export const selectUpdateStatus = (state) =>
+  state.appointment?.updateStatus || "idle";
+export const selectUpdateError = (state) =>
+  state.appointment?.updateError || null;
+export const selectLastUpdated = (state) =>
+  state.appointment?.lastUpdated || null;
 export const selectAppointments = (state) => state.appointment?.list || [];
 export const selectAppointmentsStatus = (state) =>
   state.appointment?.listStatus || "idle";

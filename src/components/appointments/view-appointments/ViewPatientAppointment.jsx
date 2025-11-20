@@ -8,6 +8,7 @@ import {
 } from "../../../features/appointmentSlice";
 import { updateAppointmentStatus } from "../../../features/appointmentSlice";
 import Swal from "sweetalert2";
+import { NavLink } from "react-router-dom";
 
 export default function ViewPatientAppointment() {
   const dispatch = useDispatch();
@@ -240,6 +241,13 @@ export default function ViewPatientAppointment() {
                     >
                       <i className="bi bi-eye"></i>
                     </button>
+                    <NavLink
+                      to={`/dashboard/edit-patient-appointment/${a.id}`}
+                      className="btn btn-secondary btn-sm ms-2"
+                      title="View full appointment page"
+                    >
+                      <i className="bi bi-box-arrow-up-right"></i>
+                    </NavLink>
                   </td>
                 </tr>
               ))}

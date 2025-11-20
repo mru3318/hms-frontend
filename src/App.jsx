@@ -2,6 +2,8 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Layout from "./layout/Layout";
 import AddDoctor from "./components/add-doctor/AddDoctor";
 import AdminDashboard from "./components/admin-dashboard/AdminDashboard";
+import { RoleProvider } from "./role/RoleContext";
+import DashboardWrapper from "./components/role-dashboards/DashboardWrapper";
 import ManageEmployee from "./components/human-resorces/manage-employee/ManageEmployee";
 import AmbulanceAdd from "./components/ambulance/ambulance-add/AmbulanceAdd";
 import AmbulanceAssignment from "./components/ambulance/ambulance-assignment/AmbulanceAssignment";
@@ -51,6 +53,7 @@ import PathologyReportList from "./components/reports/pathalogy/manage-pathalogy
 import RadiologyReportList from "./components/reports/radiology/manage-radiology-report/RadiologyReportList";
 import EditNotice from "./components/notice/manage-notice/edit-notice/EditNotice";
 import Settings from "./components/setting/Settings";
+import EditPatientAppointment from "./components/appointments/edit-appointments/EditPatientAppointment";
 
 function App() {
   const router = createBrowserRouter([
@@ -72,7 +75,7 @@ function App() {
       children: [
         {
           index: true,
-          element: <AdminDashboard />,
+          element: <DashboardWrapper />,
         },
         {
           path: "add-doctor",
@@ -278,6 +281,10 @@ function App() {
           path: "view-patient-appointments",
           element: <ViewPatientAppointment />,
         },
+        {
+          path: "edit-patient-appointment/:id",
+          element: <EditPatientAppointment />,
+        },
 
         // Prescription Management Routes
         {
@@ -295,7 +302,11 @@ function App() {
       ],
     },
   ]);
-  return <RouterProvider router={router} />;
+  return (
+    <RoleProvider>
+      <RouterProvider router={router} />
+    </RoleProvider>
+  );
 }
 
 export default App;
