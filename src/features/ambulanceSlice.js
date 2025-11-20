@@ -47,6 +47,48 @@ export const fetchAmbulances = createAsyncThunk(
   }
 );
 
+// Fetch drivers list (top-level)
+export const fetchDrivers = createAsyncThunk(
+  "ambulance/fetchDrivers",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/ambulance/drivers");
+      return res.data;
+    } catch (err) {
+      const payload = err.response
+        ? {
+            message:
+              err.response.data?.message || err.response.data || err.message,
+            status: err.response.status,
+            url: err.config?.url,
+          }
+        : { message: err.message || "Network error", code: err.code };
+      return rejectWithValue(payload);
+    }
+  }
+);
+
+// Fetch ambulance assignments list
+export const fetchAssignments = createAsyncThunk(
+  "ambulance/fetchAssignments",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/ambulance/assignments");
+      return res.data;
+    } catch (err) {
+      const payload = err.response
+        ? {
+            message:
+              err.response.data?.message || err.response.data || err.message,
+            status: err.response.status,
+            url: err.config?.url,
+          }
+        : { message: err.message || "Network error", code: err.code };
+      return rejectWithValue(payload);
+    }
+  }
+);
+
 // Add a new ambulance
 export const addAmbulance = createAsyncThunk(
   "ambulance/addAmbulance",
@@ -149,10 +191,72 @@ export const addDriver = createAsyncThunk(
   }
 );
 
+// Add an ambulance assignment
+export const addAssignment = createAsyncThunk(
+  "ambulance/addAssignment",
+  async (assignmentData, { rejectWithValue }) => {
+    try {
+      // normalize payload as needed by backend
+      const payload = {
+        ambulanceId: assignmentData.ambulanceId,
+        driverId: assignmentData.driverId,
+        status: assignmentData.status,
+        fromLocation: assignmentData.fromLocation,
+        toLocation: assignmentData.toLocation,
+        startTime: assignmentData.startTime,
+        endTime: assignmentData.endTime,
+      };
+      const res = await api.post("/ambulance/assignment/add", payload, {
+        headers: { "Content-Type": "application/json" },
+      });
+      return res.data;
+    } catch (err) {
+      const payload = err.response
+        ? {
+            message:
+              err.response.data?.message || err.response.data || err.message,
+            status: err.response.status,
+            url: err.config?.url,
+          }
+        : { message: err.message || "Network error", code: err.code };
+      return rejectWithValue(payload);
+    }
+  }
+);
+
+// Update an existing ambulance assignment (partial updates allowed)
+export const updateAssignment = createAsyncThunk(
+  "ambulance/updateAssignment",
+  async ({ id, updates }, { rejectWithValue }) => {
+    try {
+      // Backend expects status as a request parameter (?status=...)
+      const q = `?status=${encodeURIComponent(updates.status)}`;
+      const res = await api.put(`/ambulance/assignment/status/${id}${q}`);
+      return res.data;
+    } catch (err) {
+      const payload = err.response
+        ? {
+            message:
+              err.response.data?.message || err.response.data || err.message,
+            status: err.response.status,
+            url: err.config?.url,
+          }
+        : { message: err.message || "Network error", code: err.code };
+      return rejectWithValue(payload);
+    }
+  }
+);
+
 const initialState = {
   ambulances: [],
   ambulancesStatus: "idle",
   ambulancesError: null,
+  drivers: [],
+  driversStatus: "idle",
+  driversError: null,
+  assignments: [],
+  assignmentsStatus: "idle",
+  assignmentsError: null,
   formDataOptions: {
     types: [],
     statuses: [],
@@ -163,6 +267,10 @@ const initialState = {
   addError: null,
   addDriverStatus: "idle",
   addDriverError: null,
+  addAssignmentStatus: "idle",
+  addAssignmentError: null,
+  updateAssignmentStatus: "idle",
+  updateAssignmentError: null,
 };
 
 const ambulanceSlice = createSlice({
@@ -253,6 +361,102 @@ const ambulanceSlice = createSlice({
         state.addDriverStatus = "failed";
         state.addDriverError = action.payload || action.error.message;
       });
+
+    // fetch drivers
+    builder
+      .addCase(fetchDrivers.pending, (state) => {
+        state.driversStatus = "loading";
+        state.driversError = null;
+      })
+      .addCase(fetchDrivers.fulfilled, (state, action) => {
+        state.driversStatus = "succeeded";
+        if (action.payload && action.payload.data) {
+          state.drivers = Array.isArray(action.payload.data)
+            ? action.payload.data
+            : [action.payload.data];
+        } else if (Array.isArray(action.payload)) {
+          state.drivers = action.payload;
+        } else if (action.payload) {
+          state.drivers = [action.payload];
+        } else {
+          state.drivers = [];
+        }
+      })
+      .addCase(fetchDrivers.rejected, (state, action) => {
+        state.driversStatus = "failed";
+        state.driversError = action.payload || action.error.message;
+      });
+
+    // fetch assignments
+    builder
+      .addCase(fetchAssignments.pending, (state) => {
+        state.assignmentsStatus = "loading";
+        state.assignmentsError = null;
+      })
+      .addCase(fetchAssignments.fulfilled, (state, action) => {
+        state.assignmentsStatus = "succeeded";
+        if (action.payload && action.payload.data) {
+          state.assignments = Array.isArray(action.payload.data)
+            ? action.payload.data
+            : [action.payload.data];
+        } else if (Array.isArray(action.payload)) {
+          state.assignments = action.payload;
+        } else if (action.payload) {
+          state.assignments = [action.payload];
+        } else {
+          state.assignments = [];
+        }
+      })
+      .addCase(fetchAssignments.rejected, (state, action) => {
+        state.assignmentsStatus = "failed";
+        state.assignmentsError = action.payload || action.error.message;
+      });
+
+    // add assignment
+    builder
+      .addCase(addAssignment.pending, (state) => {
+        state.addAssignmentStatus = "loading";
+        state.addAssignmentError = null;
+      })
+      .addCase(addAssignment.fulfilled, (state) => {
+        state.addAssignmentStatus = "succeeded";
+        // backend may return created assignment under payload or payload.data
+        // no local list maintained here, just keep status for callers
+      })
+      .addCase(addAssignment.rejected, (state, action) => {
+        state.addAssignmentStatus = "failed";
+        state.addAssignmentError = action.payload || action.error.message;
+      });
+
+    // update assignment
+    builder
+      .addCase(updateAssignment.pending, (state) => {
+        state.updateAssignmentStatus = "loading";
+        state.updateAssignmentError = null;
+      })
+      .addCase(updateAssignment.fulfilled, (state, action) => {
+        state.updateAssignmentStatus = "succeeded";
+        const payload =
+          action.payload && action.payload.data
+            ? action.payload.data
+            : action.payload;
+        if (payload) {
+          // payload may be a single assignment or array
+          const updated = Array.isArray(payload) ? payload : [payload];
+          updated.forEach((u) => {
+            const idx = state.assignments.findIndex(
+              (a) => Number(a.id) === Number(u.id)
+            );
+            if (idx !== -1)
+              state.assignments[idx] = { ...state.assignments[idx], ...u };
+            else state.assignments.unshift(u);
+          });
+        }
+      })
+      .addCase(updateAssignment.rejected, (state, action) => {
+        state.updateAssignmentStatus = "failed";
+        state.updateAssignmentError = action.payload || action.error.message;
+      });
   },
 });
 
@@ -264,6 +468,14 @@ export const selectAmbulancesStatus = (state) =>
   state.ambulance?.ambulancesStatus;
 export const selectAmbulancesError = (state) =>
   state.ambulance?.ambulancesError;
+export const selectDrivers = (state) => state.ambulance?.drivers;
+export const selectDriversStatus = (state) => state.ambulance?.driversStatus;
+export const selectDriversError = (state) => state.ambulance?.driversError;
+export const selectAssignments = (state) => state.ambulance?.assignments;
+export const selectAssignmentsStatus = (state) =>
+  state.ambulance?.assignmentsStatus;
+export const selectAssignmentsError = (state) =>
+  state.ambulance?.assignmentsError;
 export const selectAmbulanceFormData = (state) =>
   state.ambulance?.formDataOptions;
 export const selectAmbulanceFormDataStatus = (state) =>
@@ -275,3 +487,7 @@ export const selectAddAmbulanceError = (state) => state.ambulance?.addError;
 export const selectAddDriverStatus = (state) =>
   state.ambulance?.addDriverStatus;
 export const selectAddDriverError = (state) => state.ambulance?.addDriverError;
+export const selectAddAssignmentStatus = (state) =>
+  state.ambulance?.addAssignmentStatus;
+export const selectAddAssignmentError = (state) =>
+  state.ambulance?.addAssignmentError;

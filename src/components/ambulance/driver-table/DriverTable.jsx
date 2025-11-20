@@ -1,30 +1,34 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchDrivers,
+  selectDrivers,
+  selectDriversStatus,
+  selectDriversError,
+} from "../../../features/ambulanceSlice";
 
 const DriverTable = () => {
-  // Dummy driver data
-  const drivers = [
-    {
-      id: 1,
-      driverName: "Ramesh Pawar",
-      licenseNumber: "MH12 2023456",
-      contactNumber: "9876543210",
-    },
-    {
-      id: 2,
-      driverName: "Suresh Thakur",
-      licenseNumber: "MH31 5566778",
-      contactNumber: "9822334455",
-    },
-    {
-      id: 3,
-      driverName: "Mahesh Patil",
-      licenseNumber: "MH49 9988776",
-      contactNumber: "9090909090",
-    },
-  ];
+  const dispatch = useDispatch();
+  const drivers = useSelector(selectDrivers) || [];
+  const driversStatus = useSelector(selectDriversStatus);
+  const driversError = useSelector(selectDriversError);
+
+  useEffect(() => {
+    if (driversStatus === "idle") dispatch(fetchDrivers());
+  }, [dispatch, driversStatus]);
 
   return (
     <div className="tab-pane fade show active" id="driverData" role="tabpanel">
+      {driversStatus === "loading" && (
+        <div className="p-3 small text-muted">Loading drivers...</div>
+      )}
+      {driversStatus === "failed" && (
+        <div className="p-3 text-danger small">
+          Failed to load drivers:{" "}
+          {String(driversError?.message || driversError)}
+        </div>
+      )}
+
       <table className="table table-bordered table-striped">
         <thead className="table-dark">
           <tr>
@@ -38,11 +42,11 @@ const DriverTable = () => {
         <tbody>
           {drivers && drivers.length > 0 ? (
             drivers.map((drv, index) => (
-              <tr key={drv.id || index}>
+              <tr key={drv.id || drv.driverId || index}>
                 <td>{index + 1}</td>
-                <td>{drv.driverName}</td>
-                <td>{drv.licenseNumber}</td>
-                <td>{drv.contactNumber}</td>
+                <td>{drv.driverName || drv.name}</td>
+                <td>{drv.licenseNumber || drv.license}</td>
+                <td>{drv.contactNumber || drv.phone}</td>
               </tr>
             ))
           ) : (

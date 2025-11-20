@@ -123,8 +123,12 @@ const AmbulanceAdd = () => {
       // dispatch addAmbulance
       dispatch(addAmbulance(payload))
         .unwrap()
-        .then(() => {
-          setSuccess("Ambulance added successfully!");
+        .then((res) => {
+          const msg =
+            res?.message ||
+            (res?.data && res.data.message) ||
+            "Ambulance added successfully";
+          setSuccess(msg);
           setError("");
           setFormData({
             vehicleNumber: "",
@@ -135,21 +139,24 @@ const AmbulanceAdd = () => {
           Swal.fire({
             icon: "success",
             title: "Saved",
-            text: "Ambulance added successfully",
+            text: msg,
             timer: 2000,
             showConfirmButton: false,
           });
           setTimeout(() => setSuccess(""), 2000);
         })
         .catch((err) => {
-          // backend error shape may vary
-          const msg = err?.message || err?.error || JSON.stringify(err);
-          setError(msg || "Failed to add ambulance.");
+          // unwrap rejection may be a payload or Error
+          const backendMsg =
+            err?.message || err?.data?.message || err?.data || err || null;
+          const text =
+            formatError(err) || String(backendMsg) || "Failed to add ambulance";
+          setError(text);
           setSuccess("");
           Swal.fire({
             icon: "error",
             title: "Failed",
-            text: formatError(err) || "Failed to add ambulance",
+            text,
           });
           setTimeout(() => setError(""), 3000);
         });

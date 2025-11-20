@@ -1,51 +1,25 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import Swal from "sweetalert2";
+import {
+  fetchAssignments,
+  selectAssignments,
+  selectAssignmentsStatus,
+  updateAssignment,
+} from "../../../features/ambulanceSlice";
 
 const AssignmentTable = () => {
-  // Dummy assignment data
-  const [assignments, setAssignments] = useState([
-    {
-      id: 1,
-      ambulance: { vehicleNumber: "MH31 AB 1234" },
-      driver: { driverName: "Ramesh Pawar" },
-      patient: { firstName: "Amit" },
-      fromLocation: "Ward 1",
-      toLocation: "ICU",
-      status: "SCHEDULED",
-      startTime: "2025-03-01 10:00:00",
-      endTime: "2025-03-01 10:30:00",
-    },
-    {
-      id: 2,
-      ambulance: { vehicleNumber: "MH31 XY 5678" },
-      driver: { driverName: "Suresh Thakur" },
-      patient: null,
-      fromLocation: "Emergency",
-      toLocation: "Ward 5",
-      status: "IN_PROGRESS",
-      startTime: "2025-03-01 11:15:00",
-      endTime: "2025-03-01 11:45:00",
-    },
-    {
-      id: 3,
-      ambulance: { vehicleNumber: "MH31 PQ 9988" },
-      driver: { driverName: "Mahesh Patil" },
-      patient: { firstName: "Sunita" },
-      fromLocation: "OT",
-      toLocation: "Recovery Room",
-      status: "COMPLETED",
-      startTime: "2025-03-01 09:00:00",
-      endTime: "2025-03-01 09:20:00",
-    },
-  ]);
+  const dispatch = useDispatch();
+  const assignments = useSelector(selectAssignments) || [];
+  const assignmentsStatus = useSelector(selectAssignmentsStatus);
 
-  // Handle status change
-  const handleStatusChange = (id, newStatus) => {
-    setAssignments((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: newStatus } : item
-      )
-    );
-  };
+  useEffect(() => {
+    if (assignmentsStatus === "idle") dispatch(fetchAssignments());
+  }, [dispatch, assignmentsStatus]);
+
+  const [updatingId, setUpdatingId] = useState(null);
+
+  const statusOptions = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
 
   return (
     <div
@@ -73,36 +47,74 @@ const AssignmentTable = () => {
             assignments.map((assign, index) => (
               <tr key={assign.id}>
                 <td>{index + 1}</td>
-                <td>{assign.ambulance.vehicleNumber}</td>
-                <td>{assign.driver.driverName}</td>
-                <td>{assign.patient ? assign.patient.firstName : "-"}</td>
+                <td>
+                  {assign.ambulance?.vehicleNumber ||
+                    assign.ambulanceVehicleNumber ||
+                    assign.ambulance?.vehicle_number ||
+                    "-"}
+                </td>
+                <td>
+                  {assign.driver?.driverName ||
+                    assign.driverName ||
+                    assign.driver?.name ||
+                    "-"}
+                </td>
+                <td>
+                  {assign.patient?.firstName || assign.patientName || "-"}
+                </td>
                 <td>{assign.fromLocation}</td>
                 <td>{assign.toLocation}</td>
 
-                {/* Status Badge + Dropdown */}
+                {/* Status dropdown (editable) */}
                 <td>
-                  <span
-                    className={`badge ${
-                      assign.status === "COMPLETED"
-                        ? "bg-success"
-                        : assign.status === "IN_PROGRESS"
-                        ? "bg-warning text-dark"
-                        : "bg-secondary"
-                    }`}
-                  >
-                    {assign.status}
-                  </span>
-
                   <select
-                    className="form-select form-select-sm mt-2"
-                    value={assign.status}
-                    onChange={(e) =>
-                      handleStatusChange(assign.id, e.target.value)
-                    }
+                    className="form-select form-select-sm"
+                    value={assign.status || ""}
+                    disabled={updatingId === assign.id}
+                    onChange={async (e) => {
+                      const newStatus = e.target.value;
+                      setUpdatingId(assign.id);
+                      try {
+                        const resp = await dispatch(
+                          updateAssignment({
+                            id: assign.id,
+                            updates: { status: newStatus },
+                          })
+                        ).unwrap();
+                        const msg =
+                          resp?.message ||
+                          (resp?.data && resp.data.message) ||
+                          "Status updated";
+                        Swal.fire({
+                          title: msg,
+                          icon: "success",
+                          timer: 1400,
+                          showConfirmButton: false,
+                        });
+                        // refresh assignments list from server
+                        await dispatch(fetchAssignments());
+                      } catch (err) {
+                        const backendMsg =
+                          err?.message ||
+                          err?.data?.message ||
+                          JSON.stringify(err) ||
+                          "Failed to update status";
+                        Swal.fire({
+                          title: "Failed",
+                          text: backendMsg,
+                          icon: "error",
+                        });
+                      } finally {
+                        setUpdatingId(null);
+                      }
+                    }}
                   >
-                    <option value="SCHEDULED">Scheduled</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
+                    <option value="">-- Select --</option>
+                    {statusOptions.map((st) => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
                   </select>
                 </td>
 
