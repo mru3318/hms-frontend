@@ -66,22 +66,57 @@ export const initializeAuth = createAsyncThunk(
   "auth/initialize",
   async (_, { fulfillWithValue }) => {
     if (typeof window === "undefined") return fulfillWithValue(null);
+    // Prefer structured 'auth' object, but fall back to legacy/raw 'authToken'
     const raw = localStorage.getItem("auth");
-    if (!raw) return fulfillWithValue(null);
-    try {
-      const parsed = JSON.parse(raw);
-      const { token, user, roles, permissions, exp } = parsed || {};
-      const now = Date.now();
-      if (!token || (exp && now > exp)) {
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        const { token, user, roles, permissions, exp } = parsed || {};
+        const now = Date.now();
+        if (!token || (exp && now > exp)) {
+          localStorage.removeItem("auth");
+          localStorage.removeItem("authToken");
+          return fulfillWithValue(null);
+        }
+        if (axios?.defaults?.headers) {
+          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        }
+        return fulfillWithValue({ token, user, roles, permissions, exp });
+      } catch {
         localStorage.removeItem("auth");
-        return fulfillWithValue(null);
       }
+    }
+
+    // Fallback: raw token stored under 'authToken'
+    const rawToken = localStorage.getItem("authToken");
+    if (!rawToken) return fulfillWithValue(null);
+    try {
+      const decoded = parseJwt(rawToken);
+      const roles = Array.isArray(decoded?.roles) ? decoded.roles : [];
+      const permissions = Array.isArray(decoded?.permissions)
+        ? decoded.permissions
+        : [];
+      const user = decoded?.user || {
+        username: decoded?.sub || null,
+        email: decoded?.email || null,
+        firstName: decoded?.firstName || null,
+        lastName: decoded?.lastName || null,
+        userId: decoded?.userId || null,
+      };
+      const exp = decoded?.exp ? decoded.exp * 1000 : null;
       if (axios?.defaults?.headers) {
-        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        axios.defaults.headers.common["Authorization"] = `Bearer ${rawToken}`;
       }
-      return fulfillWithValue({ token, user, roles, permissions, exp });
+      return fulfillWithValue({
+        token: rawToken,
+        user,
+        roles,
+        permissions,
+        exp,
+      });
     } catch {
-      localStorage.removeItem("auth");
+      // invalid token
+      localStorage.removeItem("authToken");
       return fulfillWithValue(null);
     }
   }
@@ -118,6 +153,8 @@ const authSlice = createSlice({
         localStorage.removeItem("auth");
         // Remove legacy key if still present
         localStorage.removeItem("authUser");
+        // Also remove raw token key
+        localStorage.removeItem("authToken");
       }
       // Clear axios Authorization header
       if (axios && axios.defaults && axios.defaults.headers) {
@@ -207,6 +244,8 @@ const authSlice = createSlice({
             "auth",
             JSON.stringify({ token, user, roles, permissions, exp })
           );
+          // Also save raw token for other code paths that expect it
+          if (token) localStorage.setItem("authToken", token);
         }
       })
       .addCase(login.rejected, (state, action) => {

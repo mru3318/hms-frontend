@@ -5,38 +5,28 @@ import { API_BASE_URL } from "../../config";
 // 1️⃣ Create Async Thunk for Posting Form Data
 export const registerEmployee = createAsyncThunk(
   "employee/registerEmployee",
-  async (employeeData, { rejectWithValue, getState }) => {
+  async (employeeData, { rejectWithValue }) => {
     try {
       console.log("Employee Data to be sent:", employeeData);
-      const state = getState();
-      const token =
-        state?.auth?.token ||
-        (() => {
-          try {
-            return JSON.parse(localStorage.getItem("auth"))?.token;
-          } catch {
-            return null;
-          }
-        })();
 
-      let config = { headers: {} };
+      let config = {};
 
       if (employeeData instanceof FormData) {
         // If it's FormData (with files), send as multipart/form-data
         // Don't set Content-Type manually, let browser set it with boundary
-        config.headers = {
-          // Let browser set Content-Type with boundary for FormData
-          "Content-Type": "multipart/form-data",
+        config = {
+          headers: {
+            // Let browser set Content-Type with boundary for FormData
+            "Content-Type": "multipart/form-data",
+          },
         };
       } else {
         // If it's a regular object (no files), send as JSON
-        config.headers = {
-          "Content-Type": "application/json",
+        config = {
+          headers: {
+            "Content-Type": "application/json",
+          },
         };
-      }
-
-      if (token) {
-        config.headers["Authorization"] = `Bearer ${token}`;
       }
 
       const response = await axios.post(
@@ -63,21 +53,9 @@ export const registerEmployee = createAsyncThunk(
 // Fetch employees by roleId
 export const fetchEmployeesByRole = createAsyncThunk(
   "employee/fetchByRole",
-  async (roleId, { rejectWithValue, getState }) => {
+  async (roleId, { rejectWithValue }) => {
     try {
-      const state = getState();
-      const token =
-        state?.auth?.token ||
-        (() => {
-          try {
-            return JSON.parse(localStorage.getItem("auth"))?.token;
-          } catch {
-            return null;
-          }
-        })();
-      const response = await axios.get(`${API_BASE_URL}/users/role/${roleId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      const response = await axios.get(`${API_BASE_URL}/users/role/${roleId}`);
       // ensure we return an array; backend may wrap the data
       const data = response.data;
       const list = Array.isArray(data)
@@ -94,23 +72,9 @@ export const fetchEmployeesByRole = createAsyncThunk(
 // Update employee status
 export const updateEmployeeStatus = createAsyncThunk(
   "employee/updateStatus",
-  async ({ userId, status }, { rejectWithValue, getState }) => {
+  async ({ userId, status }, { rejectWithValue }) => {
     try {
-      const state = getState();
-      const token =
-        state?.auth?.token ||
-        (() => {
-          try {
-            return JSON.parse(localStorage.getItem("auth"))?.token;
-          } catch {
-            return null;
-          }
-        })();
-      await axios.put(
-        `${API_BASE_URL}/users/${userId}/status`,
-        { status },
-        { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
-      );
+      await axios.put(`${API_BASE_URL}/users/${userId}/status`, { status });
       return { userId, status };
     } catch (error) {
       console.error("updateEmployeeStatus error:", error);

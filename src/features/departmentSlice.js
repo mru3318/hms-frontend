@@ -7,19 +7,38 @@ export const fetchDepartments = createAsyncThunk(
   "departments/fetchDepartments",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("authToken"); // Assuming token is stored as 'authToken'
-      const response = await axios.get(
-        // API_BASE_URL already contains the '/api' segment – avoid doubling it
-        `${API_BASE_URL}/register/form-data`,
-        {
-          headers: {
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
+      // Some environments set a global Authorization header after login.
+      // This endpoint should be public (no JWT). Temporarily remove the
+      // global header for this request and restore it afterwards.
+      const prevAuth = axios?.defaults?.headers?.common?.Authorization;
+      if (
+        axios &&
+        axios.defaults &&
+        axios.defaults.headers &&
+        axios.defaults.headers.common
+      ) {
+        delete axios.defaults.headers.common.Authorization;
+      }
+
+      let response;
+      try {
+        response = await axios.get(`${API_BASE_URL}/register/form-data`);
+      } finally {
+        // restore previous Authorization header (if any)
+        if (
+          axios &&
+          axios.defaults &&
+          axios.defaults.headers &&
+          axios.defaults.headers.common
+        ) {
+          if (typeof prevAuth !== "undefined")
+            axios.defaults.headers.common.Authorization = prevAuth;
+          else delete axios.defaults.headers.common.Authorization;
         }
-      );
+      }
       // console.log("fetchDepartments API response:", response.data);
       // helpful debug log when running locally
-      console.debug("fetchDepartments response:", response.data);
+      // console.debug("fetchDepartments response:", response.data);
       return response.data.departments; // extract departments from the response
     } catch (error) {
       return rejectWithValue(
