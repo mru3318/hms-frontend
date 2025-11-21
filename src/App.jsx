@@ -54,6 +54,7 @@ import RadiologyReportList from "./components/reports/radiology/manage-radiology
 import EditNotice from "./components/notice/manage-notice/edit-notice/EditNotice";
 import Settings from "./components/setting/Settings";
 import EditPatientAppointment from "./components/appointments/edit-appointments/EditPatientAppointment";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 function App() {
   const router = createBrowserRouter([
@@ -67,11 +68,19 @@ function App() {
     },
     {
       path: "registration",
-      element: <EmployeeRegistration />,
+      element: (
+        <ProtectedRoute>
+          <EmployeeRegistration />
+        </ProtectedRoute>
+      ),
     },
     {
       path: "dashboard",
-      element: <Layout />,
+      element: (
+        <ProtectedRoute>
+          <Layout />
+        </ProtectedRoute>
+      ),
       children: [
         {
           index: true,

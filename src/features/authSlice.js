@@ -2,6 +2,44 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { API_BASE_URL } from "../../config";
 
+// Decode JWT without external dependencies
+function decodeBase64Url(input) {
+  try {
+    let base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = base64.length % 4;
+    if (pad) base64 += "=".repeat(4 - pad);
+    const atobFn =
+      typeof atob === "function"
+        ? atob
+        : typeof window !== "undefined" && typeof window.atob === "function"
+        ? window.atob
+        : null;
+    if (!atobFn) return null;
+    return decodeURIComponent(
+      Array.prototype.map
+        .call(
+          atobFn(base64),
+          (c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+        )
+        .join("")
+    );
+  } catch {
+    return null;
+  }
+}
+
+function parseJwt(token) {
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  const json = decodeBase64Url(parts[1]);
+  try {
+    return json ? JSON.parse(json) : null;
+  } catch {
+    return null;
+  }
+}
+
 // Async thunk for login
 export const login = createAsyncThunk(
   "auth/login",
@@ -23,9 +61,38 @@ export const login = createAsyncThunk(
   }
 );
 
+// Initialize auth from localStorage on app start
+export const initializeAuth = createAsyncThunk(
+  "auth/initialize",
+  async (_, { fulfillWithValue }) => {
+    if (typeof window === "undefined") return fulfillWithValue(null);
+    const raw = localStorage.getItem("auth");
+    if (!raw) return fulfillWithValue(null);
+    try {
+      const parsed = JSON.parse(raw);
+      const { token, user, roles, permissions, exp } = parsed || {};
+      const now = Date.now();
+      if (!token || (exp && now > exp)) {
+        localStorage.removeItem("auth");
+        return fulfillWithValue(null);
+      }
+      if (axios?.defaults?.headers) {
+        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      }
+      return fulfillWithValue({ token, user, roles, permissions, exp });
+    } catch {
+      localStorage.removeItem("auth");
+      return fulfillWithValue(null);
+    }
+  }
+);
+
 const initialState = {
-  user: null,
+  user: null, // { username, email, firstName, lastName, userId }
   roles: [],
+  permissions: [],
+  token: null,
+  expiresAt: null, // epoch ms
   status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
   error: null,
   message: null,
@@ -39,13 +106,22 @@ const authSlice = createSlice({
     logout(state) {
       state.user = null;
       state.roles = [];
+      state.permissions = [];
+      state.token = null;
+      state.expiresAt = null;
       state.status = "idle";
       state.error = null;
       state.message = null;
       state.isAuthenticated = false;
       // Optional: clear localStorage tokens
       if (typeof window !== "undefined") {
+        localStorage.removeItem("auth");
+        // Remove legacy key if still present
         localStorage.removeItem("authUser");
+      }
+      // Clear axios Authorization header
+      if (axios && axios.defaults && axios.defaults.headers) {
+        delete axios.defaults.headers.common["Authorization"];
       }
     },
     clearError(state) {
@@ -62,17 +138,74 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         const payload = action.payload || {};
+        // API may return { data: { token, user }, message, status }
+        const apiData = payload.data || payload;
+        const token = apiData?.token || apiData?.accessToken || null;
+        const decoded = token
+          ? parseJwt(token)
+          : apiData.permissions || apiData.roles
+          ? apiData
+          : null;
+
+        const rolesFromToken = Array.isArray(decoded?.roles)
+          ? decoded.roles
+          : [];
+        const rolesFromApi = Array.isArray(apiData?.roles) ? apiData.roles : [];
+        const roles = [
+          ...new Set([
+            ...rolesFromToken,
+            ...rolesFromApi
+              .map((r) => (typeof r === "string" ? r : r?.authority))
+              .filter(Boolean),
+          ]),
+        ];
+
+        const permissions = Array.isArray(decoded?.permissions)
+          ? decoded.permissions
+          : Array.isArray(apiData?.permissions)
+          ? apiData.permissions
+          : [];
+
+        const userFromApi = apiData?.user || {};
+        const userFromToken = decoded?.user || {};
+        const user = {
+          username:
+            userFromApi?.username ||
+            userFromToken?.username ||
+            decoded?.sub ||
+            null,
+          email: userFromApi?.email || userFromToken?.email || null,
+          firstName: userFromApi?.firstName ?? userFromToken?.firstName ?? null,
+          lastName: userFromApi?.lastName ?? userFromToken?.lastName ?? null,
+          userId: userFromApi?.userId ?? userFromToken?.userId ?? null,
+        };
+
+        const exp = decoded?.exp ? decoded.exp * 1000 : null;
+
         state.status = "succeeded";
-        state.user = payload.username || null;
-        state.roles = (payload.roles || []).map((r) => r.authority || r);
-        state.message = payload.message || null;
+        state.user = user;
+        state.roles = roles;
+        state.permissions = permissions;
+        state.token = token;
+        state.expiresAt = exp;
+        state.message = payload.message || payload.status || "success";
         state.error = null;
-        state.isAuthenticated = true;
-        // Persist minimal info to localStorage so refresh keeps auth state (optional)
+        state.isAuthenticated = Boolean(
+          token || roles.length || permissions.length
+        );
+
+        if (
+          (token || roles.length || permissions.length) &&
+          axios?.defaults?.headers
+        ) {
+          if (token)
+            axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        }
+
         if (typeof window !== "undefined") {
           localStorage.setItem(
-            "authUser",
-            JSON.stringify({ user: state.user, roles: state.roles })
+            "auth",
+            JSON.stringify({ token, user, roles, permissions, exp })
           );
         }
       })
@@ -82,6 +215,17 @@ const authSlice = createSlice({
           (action.payload && action.payload.message) || action.error.message;
         state.message = null;
         state.isAuthenticated = false;
+      })
+      .addCase(initializeAuth.fulfilled, (state, action) => {
+        const data = action.payload;
+        if (!data) return;
+        state.token = data.token;
+        state.user = data.user || null;
+        state.roles = data.roles || [];
+        state.permissions = data.permissions || [];
+        state.expiresAt = data.exp || null;
+        state.isAuthenticated = true;
+        if (state.status === "idle") state.status = "succeeded";
       });
   },
 });
@@ -95,6 +239,14 @@ export const selectAuth = (state) => state.auth;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectAuthRoles = (state) => state.auth.roles;
+export const selectAuthPermissions = (state) => state.auth.permissions || [];
+export const selectAuthToken = (state) => state.auth.token || null;
+export const selectAuthExpiry = (state) => state.auth.expiresAt || null;
 export const selectAuthStatus = (state) => state.auth.status;
 export const selectAuthError = (state) => state.auth.error;
 export const selectAuthMessage = (state) => state.auth.message;
+export const makeSelectHasPermission = (permission) => (state) =>
+  Array.isArray(state.auth.permissions) &&
+  state.auth.permissions.includes(permission);
+export const makeSelectHasRole = (role) => (state) =>
+  Array.isArray(state.auth.roles) && state.auth.roles.includes(role);

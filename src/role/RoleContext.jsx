@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { selectAuthRoles } from "../features/authSlice";
 
 const Roles = [
   { id: "6", role: "ROLE_ACCOUNTANT", label: "Accountant" },
@@ -17,6 +19,15 @@ const RoleContext = createContext(null);
 
 export const RoleProvider = ({ children }) => {
   const [role, setRole] = useState("ROLE_ADMIN");
+  const authRoles = useSelector(selectAuthRoles);
+
+  // Sync role from authenticated user's roles when available
+  useEffect(() => {
+    if (Array.isArray(authRoles) && authRoles.length > 0) {
+      // Prefer first role from auth
+      setRole((prev) => (authRoles.includes(prev) ? prev : authRoles[0]));
+    }
+  }, [authRoles]);
   return (
     <RoleContext.Provider value={{ role, setRole, Roles }}>
       {children}

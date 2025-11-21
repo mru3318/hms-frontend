@@ -1,5 +1,7 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { logout, selectCurrentUser } from "../features/authSlice";
 import "./Layout.css";
 import RoleSelector from "../components/role-dashboards/RoleSelector";
 import { useRole } from "../role/RoleContext";
@@ -9,6 +11,10 @@ const Layout = () => {
   const [openMenu, setOpenMenu] = useState(null);
   const lastClickRef = useRef({});
   const CLICK_THRESHOLD = 300; // ms
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const currentUser = useSelector(selectCurrentUser);
 
   const handleToggleSafe = (key) => {
     const now = Date.now();
@@ -119,7 +125,10 @@ const Layout = () => {
                   src="/assets/images/profile-icon.jpg"
                   alt="Profile image"
                 />
-                <RoleSelector compact />
+                <span className="font-weight-normal">
+                  {" "}
+                  {currentUser?.username || "Admin"}{" "}
+                </span>
               </a>
               <div
                 className="dropdown-menu dropdown-menu-right navbar-dropdown"
@@ -131,9 +140,11 @@ const Layout = () => {
                     src="/assets/images/profile-icon1.png"
                     alt="Profile image"
                   />
-                  <p className="mb-1 mt-3">Admin</p>
+                  <p className="mb-1 mt-3">
+                    {currentUser?.username || "Admin"}
+                  </p>
                   <p className="font-weight-light text-muted mb-0">
-                    admin@gmail.com
+                    {currentUser?.email || "admin@gmail.com"}
                   </p>
                 </div>
                 <a className="dropdown-item">
@@ -141,10 +152,17 @@ const Layout = () => {
                   Profile
                   <span className="badge badge-pill badge-danger">1</span>
                 </a>
-                <a className="dropdown-item">
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    dispatch(logout());
+                    navigate("/");
+                  }}
+                >
                   <i className="dropdown-item-icon icon-power text-primary" />
                   Sign Out
-                </a>
+                </button>
               </div>
             </li>
           </ul>
