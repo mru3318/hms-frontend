@@ -3,6 +3,7 @@ import Layout from "./layout/Layout";
 import AddDoctor from "./components/add-doctor/AddDoctor";
 import AdminDashboard from "./components/admin-dashboard/AdminDashboard";
 import { RoleProvider } from "./role/RoleContext";
+import GlobalSpinner from "./components/spinner/GlobalSpinner";
 import DashboardWrapper from "./components/role-dashboards/DashboardWrapper";
 import ManageEmployee from "./components/human-resorces/manage-employee/ManageEmployee";
 import AmbulanceAdd from "./components/ambulance/ambulance-add/AmbulanceAdd";
@@ -313,6 +314,7 @@ function App() {
   ]);
   return (
     <RoleProvider>
+      <GlobalSpinner />
       <RouterProvider router={router} />
     </RoleProvider>
   );

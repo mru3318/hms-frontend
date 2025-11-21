@@ -98,6 +98,14 @@ const EmployeeRegistration = () => {
       addressLine1: Yup.string().required("Address Line 1 is required"),
       state: Yup.string().required("State is required"),
       city: Yup.string().required("City is required"),
+      pincode: Yup.string().test(
+        "pincode-format",
+        "Pincode must be a valid 6-digit Indian postal code",
+        (value) => {
+          if (!value) return true; // optional
+          return /^\d{6}$/.test(value);
+        }
+      ),
     }),
     // 2) Use Formik onSubmit to dispatch the thunk; convert role to number
     onSubmit: async (values, { setSubmitting, resetForm, setTouched }) => {
@@ -1172,11 +1180,16 @@ const EmployeeRegistration = () => {
                   type="text"
                   id="pincode"
                   name="pincode"
-                  className="form-control"
+                  className={`form-control ${
+                    formik.touched.pincode && formik.errors.pincode
+                      ? "is-invalid"
+                      : ""
+                  }`}
                   value={formik.values.pincode}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                 />
+                <div className="invalid-feedback">{formik.errors.pincode}</div>
               </div>
             </div>
           </div>
