@@ -15,7 +15,7 @@ const Layout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const currentUser = useSelector(selectCurrentUser);
-
+  console.log("Current User in Layout:", currentUser);
   const handleToggleSafe = (key) => {
     const now = Date.now();
     const last = lastClickRef.current[key] || 0;
@@ -144,7 +144,7 @@ const Layout = () => {
                     {currentUser?.username || "Admin"}
                   </p>
                   <p className="font-weight-light text-muted mb-0">
-                    {currentUser?.email || "admin@gmail.com"}
+                    {currentUser?.firstName + " " + currentUser?.lastName}
                   </p>
                 </div>
                 <a className="dropdown-item">
