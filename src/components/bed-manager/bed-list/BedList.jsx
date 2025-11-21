@@ -1,44 +1,37 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./BedList.css";
 import { NavLink } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchBedsList,
+  selectBedsList,
+  selectBedsListStatus,
+  selectBedsListError,
+} from "../../../features/bedManagerSlice";
 
 const BedList = () => {
+  const dispatch = useDispatch();
+  const beds = useSelector(selectBedsList) || [];
+  const bedsStatus = useSelector(selectBedsListStatus);
+  const bedsError = useSelector(selectBedsListError);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const beds = [
-    {
-      id: 1,
-      roomNo: "101",
-      roomName: "General Ward",
-      type: "General",
-      vacant: 3,
-      total: 5,
-    },
-    {
-      id: 2,
-      roomNo: "202",
-      roomName: "ICU",
-      type: "Critical Care",
-      vacant: 0,
-      total: 4,
-    },
-    {
-      id: 3,
-      roomNo: "303",
-      roomName: "Private Room",
-      type: "Deluxe",
-      vacant: 2,
-      total: 2,
-    },
-  ];
+  useEffect(() => {
+    if (bedsStatus === "idle") dispatch(fetchBedsList());
+  }, [dispatch, bedsStatus]);
+
+  useEffect(() => {
+    if (bedsError)
+      setErrorMessage(bedsError.message || bedsError || "Failed to load beds");
+  }, [bedsError]);
 
   const handleAssign = (roomNo) => {
     try {
-      // Example action
       setSuccessMessage(`Bed assigned successfully for Room ${roomNo}!`);
       setErrorMessage("");
-    } catch (error) {
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch {
       setErrorMessage("Something went wrong. Please try again.");
       setSuccessMessage("");
     }
@@ -50,7 +43,10 @@ const BedList = () => {
         {/* Header */}
         <div className="card-header d-flex justify-content-between align-items-center bg-light">
           <h5 className="mb-0">Vacant Beds</h5>
-          <NavLink to="/allotted-beds" className="btn btn-sm btn-success">
+          <NavLink
+            to="/dashboard/allotted-beds"
+            className="btn btn-sm btn-success"
+          >
             Allotted Beds
           </NavLink>
         </div>
@@ -90,7 +86,7 @@ const BedList = () => {
         )}
 
         {/* Table */}
-        <div class="container-fluid">
+        <div className="container-fluid">
           <div className="card-body">
             <div className="table-responsive">
               <table className="table table-sm table-striped table-bordered align-middle">
@@ -106,31 +102,63 @@ const BedList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {beds.map((bed, index) => (
-                    <tr key={bed.id}>
-                      <td>{index + 1}</td>
-                      <td>{bed.roomNo}</td>
-                      <td>{bed.roomName}</td>
-                      <td>{bed.type}</td>
-                      <td>{bed.vacant}</td>
-                      <td>{bed.total}</td>
-                      <td>
-                        {bed.vacant > 0 ? (
-                          <NavLink
-                            className="btn btn-sm btn-success"
-                            to="/bed-assign"
-                            // onClick={() => handleAssign(bed.roomNo)}
-                          >
-                            Assign
-                          </NavLink>
-                        ) : (
-                          <span className="btn btn-sm btn-secondary disabled">
-                            No Beds
-                          </span>
-                        )}
+                  {bedsStatus === "loading" ? (
+                    <tr>
+                      <td colSpan="7" className="text-center">
+                        Loading beds...
                       </td>
                     </tr>
-                  ))}
+                  ) : beds.length > 0 ? (
+                    beds.map((bed, index) => (
+                      <tr key={bed.id || bed.roomNumber || index}>
+                        <td>{index + 1}</td>
+                        <td>{bed.roomNumber ?? bed.roomNo ?? "-"}</td>
+                        <td>
+                          {bed.roomName ??
+                            bed.roomName ??
+                            bed.roomNumber ??
+                            "-"}
+                        </td>
+                        <td>{bed.roomType ?? bed.type ?? "-"}</td>
+                        <td>
+                          {bed.vacantBeds ?? bed.vacant ?? bed.available ?? 0}
+                        </td>
+                        <td>
+                          {bed.totalBeds ?? bed.total ?? bed.capacity ?? 0}
+                        </td>
+                        <td>
+                          {(bed.vacantBeds ??
+                            bed.vacant ??
+                            bed.available ??
+                            0) > 0 ? (
+                            <NavLink
+                              className="btn btn-sm btn-success"
+                              to={`/dashboard/bed-assign/${
+                                bed.roomNumber || bed.roomNo || bed.id
+                              }`}
+                              // onClick={() =>
+                              //   handleAssign(
+                              //     bed.roomNumber || bed.roomNo || bed.id
+                              //   )
+                              // }
+                            >
+                              Assign
+                            </NavLink>
+                          ) : (
+                            <span className="btn btn-sm btn-secondary disabled">
+                              No Beds
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" className="text-center">
+                        No beds found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

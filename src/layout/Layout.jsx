@@ -494,7 +494,7 @@ const Layout = () => {
             )}
             {isAllowed("billing") && (
               <li className="nav-item">
-                <NavLink to="billing" className="nav-link">
+                <NavLink to="#" className="nav-link">
                   <span className="menu-title">Invoice</span>
                   <i className="fa fa-file-invoice menu-icon" />
                 </NavLink>

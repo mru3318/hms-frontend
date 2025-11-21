@@ -1,29 +1,87 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import Swal from "sweetalert2";
 import "./AddBeds.css";
+import {
+  fetchBedsFormData,
+  selectBedsFormData,
+  selectBedsFormDataStatus,
+  addBed,
+  selectAddBedStatus,
+} from "../../../features/bedManagerSlice";
 
 const AddBeds = () => {
   const [bedNumber, setBedNumber] = useState("");
-  const [roomType, setRoomType] = useState("");
+  const [roomId, setRoomId] = useState("");
+  const [bedStatus, setBedStatus] = useState("");
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(false);
+  const dispatch = useDispatch();
+  const bedsFormData = useSelector(selectBedsFormData) || {
+    rooms: [],
+    bedStatus: [],
+  };
+  const bedsFormDataStatus = useSelector(selectBedsFormDataStatus);
+  const addBedStatus = useSelector(selectAddBedStatus);
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (bedNumber.trim() === "" || roomType === "") {
+    if (bedNumber.trim() === "" || roomId === "" || bedStatus === "") {
       setError(true);
       setSuccess(false);
       return;
     }
 
-    // Simulate a successful submission
-    setSuccess(true);
-    setError(false);
-
-    // Reset form
-    setBedNumber("");
-    setRoomType("");
+    // dispatch addBed
+    dispatch(addBed({ bedNumber: bedNumber.trim(), roomId, status: bedStatus }))
+      .unwrap()
+      .then((res) => {
+        const msg =
+          res?.message ||
+          (res?.data && res.data.message) ||
+          "Bed added successfully";
+        setSuccess(true);
+        setError(false);
+        // Reset form
+        setBedNumber("");
+        setRoomId("");
+        setBedStatus("");
+        Swal.fire({
+          title: msg,
+          icon: "success",
+          timer: 1400,
+          showConfirmButton: false,
+        });
+      })
+      .catch((err) => {
+        const backendMsg =
+          err?.message ||
+          err?.data?.message ||
+          JSON.stringify(err) ||
+          "Failed to add bed";
+        setError(true);
+        setSuccess(false);
+        Swal.fire({ title: "Failed", text: backendMsg, icon: "error" });
+      });
   };
+
+  useEffect(() => {
+    if (bedsFormDataStatus === "idle") dispatch(fetchBedsFormData());
+  }, [dispatch, bedsFormDataStatus]);
+
+  // Auto-hide inline success/error alerts after 3 seconds
+  useEffect(() => {
+    if (!success) return; // nothing to do
+    const timer = setTimeout(() => setSuccess(false), 3000);
+    return () => clearTimeout(timer);
+  }, [success]);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(false), 3000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   return (
     <div className="container-fluid my-4 p-0 m-0">
@@ -93,7 +151,7 @@ const AddBeds = () => {
 
               {/* Room Type */}
               <div className="row mb-3">
-                <div className="col-md-6 ">
+                <div className="col-md-6">
                   <label htmlFor="roomType" className="form-label fw-semibold">
                     Room <span className="text-danger">*</span>
                   </label>
@@ -101,34 +159,55 @@ const AddBeds = () => {
                     id="roomType"
                     name="roomId"
                     className="form-select"
-                    value={roomType}
-                    onChange={(e) => setRoomType(e.target.value)}
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value)}
                     required
                   >
-                    <option value="">-- Select Room Type --</option>
-                    <option value="1">ICU Room</option>
-                    <option value="2">General Ward</option>
-                    <option value="3">Private Room</option>
+                    <option value="">-- Select Room --</option>
+                    {bedsFormDataStatus === "loading" && (
+                      <option value="">Loading rooms...</option>
+                    )}
+                    {bedsFormDataStatus === "succeeded" &&
+                      bedsFormData.rooms.length === 0 && (
+                        <option value="">No rooms available</option>
+                      )}
+                    {bedsFormData.rooms.map((r) => (
+                      <option
+                        key={r.id || r.roomNumber}
+                        value={r.id ?? r.roomNumber}
+                      >
+                        {r.roomName || r.roomName || r.roomNumber}
+                        {r.roomNumber ? ` (${r.roomNumber})` : ""}
+                      </option>
+                    ))}
                   </select>
-                  <div className="invalid-feedback">
-                    Please select a room type.
-                  </div>
+                  <div className="invalid-feedback">Please select a room.</div>
                 </div>
-                <div class="col-md-6">
-                  <label htmlFor="roomType" className="form-label">
+                <div className="col-md-6">
+                  <label htmlFor="bedStatus" className="form-label">
                     Status <span className="text-danger">*</span>
                   </label>
                   <select
                     className="form-select"
-                    id="roomType"
-                    name="roomType"
+                    id="bedStatus"
+                    name="bedStatus"
+                    value={bedStatus}
+                    onChange={(e) => setBedStatus(e.target.value)}
                     required
                   >
                     <option value="">-- Select Status --</option>
-                    <option>Accupied</option>
-                    <option>ICU</option>
-                    <option>Private Room</option>
-                    <option>Deluxe Room</option>
+                    {bedsFormDataStatus === "loading" && (
+                      <option value="">Loading statuses...</option>
+                    )}
+                    {bedsFormDataStatus === "succeeded" &&
+                      bedsFormData.bedStatus.length === 0 && (
+                        <option value="">No status options</option>
+                      )}
+                    {bedsFormData.bedStatus.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -136,8 +215,12 @@ const AddBeds = () => {
 
             {/* Footer */}
             <div className="d-flex justify-content-center mb-3">
-              <button type="submit" className="btn button px-4">
-                Save
+              <button
+                type="submit"
+                className="btn button px-4"
+                disabled={addBedStatus === "loading"}
+              >
+                {addBedStatus === "loading" ? "Saving..." : "Save"}
               </button>
             </div>
           </form>

@@ -1,10 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useLocation, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchAssignData } from "../../../features/bedManagerSlice";
 
 const BedAssign = () => {
+  const { id: routeRoomId } = useParams();
+
   const [formData, setFormData] = useState({
-    roomId: "1",
+    roomId: routeRoomId || "",
     bedNo: "",
-    roomName: "General Ward",
+    roomName: "",
     patientId: "",
     roomType: "Shared",
   });
@@ -12,21 +17,89 @@ const BedAssign = () => {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const bedOptions = [
-    { id: "1", label: "B-101" },
-    { id: "2", label: "B-102" },
-    { id: "3", label: "B-103" },
-  ];
-
-  const patientOptions = [
-    { id: "P001", name: "John Doe" },
-    { id: "P002", name: "Jane Smith" },
-    { id: "P003", name: "David Lee" },
-  ];
+  // `bedOptions` will be populated from `assignData.bedNumbers` for the selected room
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const dispatch = useDispatch();
+  const assignData = useSelector(
+    (s) =>
+      s.bedManager?.assignData || { bedNumbers: {}, patientIds: {}, room: null }
+  );
+  const patientsList = Object.entries(assignData?.patientIds || {}).map(
+    ([internalId, obj]) => ({
+      internalId,
+      code: obj?.hospitalId || "",
+      name: obj?.name || "",
+    })
+  );
+  const bedOptions = Object.entries(assignData?.bedNumbers || {}).map(
+    ([key, val]) => ({ id: key, label: String(val) })
+  );
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef(null);
+  const location = useLocation();
+  const editPrefill = React.useMemo(
+    () => location.state || {},
+    [location.state]
+  );
+
+  useEffect(() => {
+    // Load assign metadata when the selected room changes
+    if (formData.roomId) dispatch(fetchAssignData(formData.roomId));
+  }, [dispatch, formData.roomId]);
+
+  // When assign metadata arrives (room info, bed numbers), prefill roomName, roomType and bedNo if in edit mode or only one bed available
+  useEffect(() => {
+    if (assignData?.room) {
+      setFormData((prev) => ({
+        ...prev,
+        roomName: assignData.room.roomName || prev.roomName,
+        roomType: assignData.room.roomType || prev.roomType,
+      }));
+    }
+    // If coming from an edit button with bedNo provided in navigation state
+    if (editPrefill?.bedNo) {
+      setFormData((prev) => ({ ...prev, bedNo: String(editPrefill.bedNo) }));
+    } else if (!formData.bedNo && bedOptions.length === 1) {
+      // Auto-select the single available bed number
+      setFormData((prev) => ({ ...prev, bedNo: bedOptions[0].label }));
+    }
+  }, [assignData, bedOptions, editPrefill, formData.bedNo]);
+
+  useEffect(() => {
+    if (!query) {
+      setSuggestions([]);
+      return;
+    }
+    const q = query.trim().toLowerCase();
+    const matches = (patientsList || [])
+      .filter((p) => {
+        const code = p.code.toLowerCase();
+        const name = p.name.toLowerCase();
+        return code.includes(q) || name.includes(q);
+      })
+      .slice(0, 10)
+      .map((p) => ({ id: p.code, name: p.name || p.code }));
+    setSuggestions(matches);
+  }, [query, patientsList]);
+
+  const handleSelectSuggestion = (s) => {
+    setFormData({ ...formData, patientId: s.id }); // hospitalId code
+    setQuery(`${s.id} - ${s.name}`);
+    setShowSuggestions(false);
+  };
+
+  const handleQueryChange = (e) => {
+    setQuery(e.target.value);
+    setShowSuggestions(true);
+    // clear selected patientId if user edits
+    setFormData({ ...formData, patientId: "" });
   };
 
   const handleSubmit = (e) => {
@@ -89,14 +162,18 @@ const BedAssign = () => {
                   value={formData.bedNo}
                   onChange={handleChange}
                   required
+                  disabled={!bedOptions.length}
                 >
                   <option value="">-- Select Bed No --</option>
                   {bedOptions.map((bed) => (
-                    <option key={bed.id} value={bed.id}>
+                    <option key={bed.id} value={bed.label}>
                       {bed.label}
                     </option>
                   ))}
                 </select>
+                {!bedOptions.length && (
+                  <small className="text-muted">Loading bed numbers...</small>
+                )}
               </div>
 
               {/* Room Name */}
@@ -109,45 +186,65 @@ const BedAssign = () => {
                   id="roomName"
                   name="roomName"
                   className="form-control"
-                  value={formData.roomName}
+                  value={assignData?.room?.roomName || formData.roomName}
                   readOnly
                   required
                 />
               </div>
 
-              {/* Patient ID */}
-              <div className="col-md-6">
-                <label htmlFor="patientId" className="form-label fw-semibold">
+              {/* Patient ID (searchable) */}
+              <div className="col-md-6 position-relative">
+                <label
+                  htmlFor="patientSearch"
+                  className="form-label fw-semibold"
+                >
                   Patient ID <span className="text-danger">*</span>
                 </label>
-                <select
-                  id="patientId"
-                  name="patientId"
-                  className="form-select"
-                  value={formData.patientId}
-                  onChange={handleChange}
+                <input
+                  id="patientSearch"
+                  name="patientSearch"
+                  ref={inputRef}
+                  className="form-control"
+                  placeholder="Search patient by code (e.g., HM6) or name"
+                  value={query}
+                  onChange={handleQueryChange}
+                  onFocus={() => setShowSuggestions(true)}
+                  autoComplete="off"
                   required
-                >
-                  <option value="">-- Select Patient --</option>
-                  {patientOptions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.id} - {p.name}
-                    </option>
-                  ))}
-                </select>
+                />
+                <input
+                  type="hidden"
+                  name="patientId"
+                  value={formData.patientId}
+                />
+                {showSuggestions && suggestions && suggestions.length > 0 && (
+                  <ul
+                    className="list-group position-absolute w-100 zindex-tooltip"
+                    style={{ maxHeight: 220, overflowY: "auto" }}
+                  >
+                    {suggestions.map((s) => (
+                      <li
+                        key={s.id}
+                        className="list-group-item list-group-item-action"
+                        onMouseDown={() => handleSelectSuggestion(s)}
+                      >
+                        <strong>{s.id}</strong> - <span>{s.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
-              {/* Room Type */}
+              {/* Room Type (read-only from assignData) */}
               <div className="col-md-6">
                 <label htmlFor="roomType" className="form-label fw-semibold">
                   Room Type
                 </label>
                 <input
-                  type="text"
                   id="roomType"
                   name="roomType"
-                  className="form-control bg-light text-muted"
-                  value={formData.roomType}
+                  className="form-control"
+                  value={assignData?.room?.roomType || formData.roomType || ""}
                   readOnly
                 />
               </div>

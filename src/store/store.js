@@ -10,6 +10,7 @@ import birthAndDethReducer from "../features/birthAndDethSlice";
 import doctorScheduleReducer from "../features/doctorScheduleSlice";
 import bedReducer from "../features/bedSlice";
 import ambulanceReducer from "../features/ambulanceSlice";
+import bedManagerReducer from "../features/bedManagerSlice";
 import priscriptionReducer from "../features/priscriptionSlice";
 import noticeReducer from "../features/noticeSlice";
 import commanReducer from "../features/commanSlice";
@@ -27,6 +28,7 @@ export const store = configureStore({
     birthAndDeth: birthAndDethReducer,
     doctorSchedule: doctorScheduleReducer,
     beds: bedReducer,
+    bedManager: bedManagerReducer,
     ambulance: ambulanceReducer,
     priscription: priscriptionReducer,
     notice: noticeReducer,

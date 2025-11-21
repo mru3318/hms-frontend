@@ -115,7 +115,7 @@ function App() {
           element: <BedList />,
         },
         {
-          path: "bed-assign",
+          path: "bed-assign/:id",
           element: <BedAssign />,
         },
         {

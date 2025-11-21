@@ -1,4 +1,10 @@
 import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import Swal from "sweetalert2";
+import {
+  addRoom,
+  selectAddRoomStatus,
+} from "../../../features/bedManagerSlice";
 
 const AddRoom = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +19,8 @@ const AddRoom = () => {
 
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(false);
+  const dispatch = useDispatch();
+  const addStatus = useSelector(selectAddRoomStatus);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -36,19 +44,52 @@ const AddRoom = () => {
       return;
     }
 
-    setSuccess(true);
     setError(false);
 
-    // Reset form
-    setFormData({
-      roomNo: "",
-      roomName: "",
-      roomType: "",
-      floor: "",
-      status: "",
-      pricePerDay: "",
-      description: "",
-    });
+    // dispatch addRoom
+    dispatch(
+      addRoom({
+        roomNo: formData.roomNo,
+        floor: Number(formData.floor),
+        status: formData.status,
+        roomName: formData.roomName,
+        roomTypeName: formData.roomType,
+        description: formData.description,
+        pricePerDay: Number(formData.pricePerDay),
+      })
+    )
+      .unwrap()
+      .then((res) => {
+        const msg =
+          res?.message ||
+          (res?.data && res.data.message) ||
+          "Room added successfully";
+        setSuccess(true);
+        setFormData({
+          roomNo: "",
+          roomName: "",
+          roomType: "",
+          floor: "",
+          status: "",
+          pricePerDay: "",
+          description: "",
+        });
+        Swal.fire({
+          title: msg,
+          icon: "success",
+          timer: 1600,
+          showConfirmButton: false,
+        });
+      })
+      .catch((err) => {
+        const backendMsg =
+          err?.message ||
+          err?.data?.message ||
+          JSON.stringify(err) ||
+          "Failed to add room";
+        setError(true);
+        Swal.fire({ title: "Failed", text: backendMsg, icon: "error" });
+      });
   };
 
   return (
@@ -144,10 +185,10 @@ const AddRoom = () => {
               required
             >
               <option value="">-- Select Room Type --</option>
-              <option>General Ward</option>
-              <option>ICU</option>
-              <option>Private Room</option>
-              <option>Deluxe Room</option>
+              <option value="General_Ward">General Ward</option>
+              <option value="ICU">ICU</option>
+              <option value="Private_Room">Private Room</option>
+              <option value="Deluxe_Room">Deluxe Room</option>
             </select>
           </div>
 
@@ -187,9 +228,9 @@ const AddRoom = () => {
               required
             >
               <option value="">Select Status</option>
-              <option>Available</option>
-              <option>Occupied</option>
-              <option>Maintenance</option>
+              <option value="AVAILABLE">Available</option>
+              <option value="UNAVAILABLE">Unavailable</option>
+              <option value="UNDER_MAINTENANCE">Under Maintenance</option>
             </select>
           </div>
 
@@ -230,8 +271,12 @@ const AddRoom = () => {
 
           {/* Submit Button */}
           <div className="d-flex justify-content-center mb-3">
-            <button type="submit" className="btn btn-primary px-4">
-              Save
+            <button
+              type="submit"
+              className="btn btn-primary px-4"
+              disabled={addStatus === "loading"}
+            >
+              {addStatus === "loading" ? "Saving..." : "Save"}
             </button>
           </div>
         </form>
