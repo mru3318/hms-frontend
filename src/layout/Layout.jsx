@@ -1,11 +1,15 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { logout, selectCurrentUser } from "../features/authSlice";
+import {
+  logout,
+  selectCurrentUser,
+  selectAuthRoles,
+  selectAuthPermissions,
+} from "../features/authSlice";
 import "./Layout.css";
 import RoleSelector from "../components/role-dashboards/RoleSelector";
-import { useRole } from "../role/RoleContext";
-import { isMenuAllowed } from "../role/rolePermissions";
+import sidebarMenu from "../role/sidebarMenu";
 
 const Layout = () => {
   const [openMenu, setOpenMenu] = useState(null);
@@ -15,7 +19,10 @@ const Layout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const currentUser = useSelector(selectCurrentUser);
-  console.log("Current User in Layout:", currentUser);
+  const authRoles = useSelector(selectAuthRoles);
+  const permissions = useSelector(selectAuthPermissions);
+  const SHOW_LEGACY_SIDEBAR = false;
+  // console.log("Current User in Layout:", currentUser);
   const handleToggleSafe = (key) => {
     const now = Date.now();
     const last = lastClickRef.current[key] || 0;
@@ -25,8 +32,8 @@ const Layout = () => {
   };
 
   const location = useLocation();
-  const { role } = useRole();
-  const isAllowed = (key) => isMenuAllowed(role, key);
+  // Legacy static sidebar support (disabled)
+  const isAllowed = () => false;
 
   useEffect(() => {
     // remove any leftover 'active' classes from sidebar nav items so styles
@@ -68,6 +75,134 @@ const Layout = () => {
   };
 
   // const isUiBasicOpen =
+  const normalizedRoles = (authRoles || [])
+    .map((r) => (r && r.startsWith("ROLE_") ? r.slice(5) : r))
+    .map((r) => String(r || "").toUpperCase());
+
+  const hasRole = (allowedRoles) => {
+    if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) return true;
+    return allowedRoles.some((r) =>
+      normalizedRoles.includes(String(r).toUpperCase())
+    );
+  };
+
+  const hasPermission = (requiredPerms) => {
+    if (!Array.isArray(requiredPerms) || requiredPerms.length === 0)
+      return true;
+    const userPerms = Array.isArray(permissions) ? permissions : [];
+    // show if user has ANY of the listed permissions
+    return requiredPerms.some((p) => userPerms.includes(p));
+  };
+
+  const isVisibleItem = (item) => {
+    const gate = hasRole(item.roles) && hasPermission(item.permissions);
+    if (!gate) return false;
+    if (Array.isArray(item.children) && item.children.length > 0) {
+      return item.children.some((child) => isVisibleItem(child));
+    }
+    return true;
+  };
+
+  const slug = (s) =>
+    String(s || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+  const renderChildren = (children, parentId) => {
+    return (
+      <ul className="nav flex-column sub-menu">
+        {children.filter(isVisibleItem).map((child) => {
+          const hasKids =
+            Array.isArray(child.children) && child.children.length > 0;
+          if (hasKids) {
+            const nestedId =
+              child.collapseId || `${parentId}-${slug(child.title)}`;
+            return (
+              <li key={nestedId} className="nav-item">
+                <a
+                  className="nav-link"
+                  data-bs-toggle="collapse"
+                  data-bs-target={`#${nestedId}`}
+                  aria-expanded="false"
+                  aria-controls={nestedId}
+                >
+                  {child.title}
+                </a>
+                <ul
+                  className="flex-column sub-menu collapse"
+                  id={nestedId}
+                  style={{ listStyle: "none" }}
+                >
+                  {child.children.filter(isVisibleItem).map((g) => (
+                    <li key={`${nestedId}-${slug(g.title)}`}>
+                      {g.path ? (
+                        <NavLink to={g.path} className="nav-link">
+                          {g.title}
+                        </NavLink>
+                      ) : (
+                        <span className="nav-link">{g.title}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            );
+          }
+          return (
+            <li key={`${parentId}-${slug(child.title)}`} className="nav-item">
+              {child.path ? (
+                <NavLink className="nav-link" to={child.path}>
+                  {child.title}
+                </NavLink>
+              ) : (
+                <span className="nav-link">{child.title}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
+  const renderSidebar = () => {
+    return sidebarMenu.filter(isVisibleItem).map((item) => {
+      const hasKids = Array.isArray(item.children) && item.children.length > 0;
+      if (!hasKids) {
+        return (
+          <li key={item.title} className="nav-item">
+            <NavLink className="nav-link" to={item.path || "/dashboard"}>
+              <span className="menu-title">{item.title}</span>
+              {item.icon ? <i className={`${item.icon} menu-icon`} /> : null}
+            </NavLink>
+          </li>
+        );
+      }
+      const key = item.collapseId || slug(item.title);
+      const opened = openMenu === key;
+      return (
+        <li key={key} className="nav-item">
+          <a
+            className="nav-link"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              handleToggleSafe(key);
+            }}
+          >
+            <span className="menu-title">{item.title}</span>
+            {item.icon ? <i className={`${item.icon} menu-icon`} /> : null}
+          </a>
+          <div
+            className={`collapse ${opened ? "show" : ""}`}
+            data-menu-key={key}
+          >
+            {renderChildren(item.children, key)}
+          </div>
+        </li>
+      );
+    });
+  };
   //   location.pathname === "/add-new-employee" ||
   //   location.pathname === "/manage-employees";
   // const isFormsOpen = location.pathname === "/add-doctor";
@@ -199,773 +334,804 @@ const Layout = () => {
               <span className="nav-link" />
             </li>
             {/* ################## */}
-            {isAllowed("dashboard") && (
-              <li className="nav-item">
-                <NavLink to="/dashboard" end className="nav-link">
-                  <span className="menu-title">Dashboard</span>
-                  <i className="fa fa-tachometer-alt menu-icon" />
-                </NavLink>
-              </li>
-            )}
-            {isAllowed("hr") && (
-              <li className="nav-item">
-                <a
-                  className="nav-link"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleToggleSafe("hr");
-                  }}
-                >
-                  <span className="menu-title">Human Resources</span>
-                  <i className="fa fa-users menu-icon" />
-                </a>
-                <div
-                  className={`collapse ${openMenu === "hr" ? "show" : ""}`}
-                  data-menu-key="hr"
-                >
-                  <ul className="nav flex-column sub-menu">
-                    <li className="nav-item">
-                      <NavLink className="nav-link" to="add-new-employee">
-                        Add Employee
-                      </NavLink>
-                    </li>
-                    <li className="nav-item">
-                      <NavLink className="nav-link" to="manage-employees">
-                        Manage Employee
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            )}
-            {isAllowed("departments") && (
-              <li className="nav-item">
-                <a
-                  className="nav-link"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setOpenMenu(
-                      openMenu === "departments" ? null : "departments"
-                    );
-                  }}
-                >
-                  <span className="menu-title">Departments</span>
-                  <i className="fa fa-building menu-icon" />
-                </a>
-                <div
-                  className={`collapse ${
-                    openMenu === "departments" ? "show" : ""
-                  }`}
-                  data-menu-key="departments"
-                >
-                  <ul className="nav flex-column sub-menu">
-                    <li className="nav-item">
-                      <NavLink className="nav-link" to="add-department">
-                        Add Department
-                      </NavLink>
-                    </li>
-                    <li className="nav-item">
-                      <NavLink className="nav-link" to="manage-department">
-                        Manage Departments{" "}
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            )}
-            {isAllowed("doctor") && (
-              <li className="nav-item">
-                <a
-                  className="nav-link"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleToggleSafe("doctor");
-                  }}
-                >
-                  <span className="menu-title">Doctor</span>
-                  <i className="fa fa-user-md menu-icon" />
-                </a>
-                <div
-                  className={`collapse ${openMenu === "doctor" ? "show" : ""}`}
-                  data-menu-key="doctor"
-                >
-                  <ul className="nav flex-column sub-menu">
-                    <li className="nav-item">
-                      <NavLink to="add-doctor" className="nav-link">
-                        Add Doctor
-                      </NavLink>
-                    </li>
-                    <li className="nav-item">
-                      <a className="nav-link" href="#">
-                        View Doctor’s List{" "}
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            )}
-            {isAllowed("patient") && (
-              <li className="nav-item">
-                <a
-                  className="nav-link"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setOpenMenu(openMenu === "patient" ? null : "patient");
-                  }}
-                >
-                  <span className="menu-title"> Patient Management</span>
-                  <i className="fa fa-procedures menu-icon" />
-                </a>
-                <div
-                  className={`collapse ${openMenu === "patient" ? "show" : ""}`}
-                  data-menu-key="patient"
-                >
-                  <ul className="nav flex-column sub-menu">
-                    {/* OPD Management */}
-                    <li className="nav-item">
-                      <a
-                        className="nav-link"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#opdMenu"
-                        aria-expanded="false"
-                        aria-controls="opdMenu"
-                      >
-                        OPD Management
-                      </a>
-                      <ul
-                        className="flex-column sub-menu collapse"
-                        id="opdMenu"
-                        data-bs-parent="#charts"
-                        style={{ listStyle: "none" }}
-                      >
-                        <li>
-                          <a href="#" className="nav-link">
-                            Add Patients
-                          </a>
+            {renderSidebar()}
+            {SHOW_LEGACY_SIDEBAR && (
+              <>
+                {/* Legacy static menu below (disabled) */}
+                {isAllowed("dashboard") && (
+                  <li className="nav-item">
+                    <NavLink to="/dashboard" end className="nav-link">
+                      <span className="menu-title">Dashboard</span>
+                      <i className="fa fa-tachometer-alt menu-icon" />
+                    </NavLink>
+                  </li>
+                )}
+                {isAllowed("hr") && (
+                  <li className="nav-item">
+                    <a
+                      className="nav-link"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleToggleSafe("hr");
+                      }}
+                    >
+                      <span className="menu-title">Human Resources</span>
+                      <i className="fa fa-users menu-icon" />
+                    </a>
+                    <div
+                      className={`collapse ${openMenu === "hr" ? "show" : ""}`}
+                      data-menu-key="hr"
+                    >
+                      <ul className="nav flex-column sub-menu">
+                        <li className="nav-item">
+                          <NavLink className="nav-link" to="add-new-employee">
+                            Add Employee
+                          </NavLink>
                         </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            View Patients
-                          </a>
+                        <li className="nav-item">
+                          <NavLink className="nav-link" to="manage-employees">
+                            Manage Employee
+                          </NavLink>
                         </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            Add Prescriptions
-                          </a>
+                      </ul>
+                    </div>
+                  </li>
+                )}
+                {isAllowed("departments") && (
+                  <li className="nav-item">
+                    <a
+                      className="nav-link"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setOpenMenu(
+                          openMenu === "departments" ? null : "departments"
+                        );
+                      }}
+                    >
+                      <span className="menu-title">Departments</span>
+                      <i className="fa fa-building menu-icon" />
+                    </a>
+                    <div
+                      className={`collapse ${
+                        openMenu === "departments" ? "show" : ""
+                      }`}
+                      data-menu-key="departments"
+                    >
+                      <ul className="nav flex-column sub-menu">
+                        <li className="nav-item">
+                          <NavLink className="nav-link" to="add-department">
+                            Add Department
+                          </NavLink>
                         </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            Lab Orders
-                          </a>
+                        <li className="nav-item">
+                          <NavLink className="nav-link" to="manage-department">
+                            Manage Departments{" "}
+                          </NavLink>
                         </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            Billing
+                      </ul>
+                    </div>
+                  </li>
+                )}
+                {isAllowed("doctor") && (
+                  <li className="nav-item">
+                    <a
+                      className="nav-link"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleToggleSafe("doctor");
+                      }}
+                    >
+                      <span className="menu-title">Doctor</span>
+                      <i className="fa fa-user-md menu-icon" />
+                    </a>
+                    <div
+                      className={`collapse ${
+                        openMenu === "doctor" ? "show" : ""
+                      }`}
+                      data-menu-key="doctor"
+                    >
+                      <ul className="nav flex-column sub-menu">
+                        <li className="nav-item">
+                          <NavLink to="add-doctor" className="nav-link">
+                            Add Doctor
+                          </NavLink>
+                        </li>
+                        <li className="nav-item">
+                          <a className="nav-link" href="#">
+                            View Doctor’s List{" "}
                           </a>
                         </li>
                       </ul>
-                    </li>
-                    {/* IPD Management */}
-                    <li className="nav-item">
-                      <a
-                        className="nav-link"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#ipdMenu"
-                        aria-expanded="false"
-                        aria-controls="ipdMenu"
-                      >
-                        IPD Management
-                      </a>
-                      <ul
-                        className="flex-column sub-menu collapse"
-                        id="ipdMenu"
-                        data-bs-parent="#charts"
-                        style={{ listStyle: "none" }}
-                      >
-                        <li>
-                          <a href="#" className="nav-link">
-                            Add Patient
+                    </div>
+                  </li>
+                )}
+                {isAllowed("patient") && (
+                  <li className="nav-item">
+                    <a
+                      className="nav-link"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setOpenMenu(openMenu === "patient" ? null : "patient");
+                      }}
+                    >
+                      <span className="menu-title"> Patient Management</span>
+                      <i className="fa fa-procedures menu-icon" />
+                    </a>
+                    <div
+                      className={`collapse ${
+                        openMenu === "patient" ? "show" : ""
+                      }`}
+                      data-menu-key="patient"
+                    >
+                      <ul className="nav flex-column sub-menu">
+                        {/* OPD Management */}
+                        <li className="nav-item">
+                          <a
+                            className="nav-link"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#opdMenu"
+                            aria-expanded="false"
+                            aria-controls="opdMenu"
+                          >
+                            OPD Management
                           </a>
+                          <ul
+                            className="flex-column sub-menu collapse"
+                            id="opdMenu"
+                            data-bs-parent="#charts"
+                            style={{ listStyle: "none" }}
+                          >
+                            <li>
+                              <a href="#" className="nav-link">
+                                Add Patients
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                View Patients
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                Add Prescriptions
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                Lab Orders
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                Billing
+                              </a>
+                            </li>
+                          </ul>
                         </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            View Patient
+                        {/* IPD Management */}
+                        <li className="nav-item">
+                          <a
+                            className="nav-link"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#ipdMenu"
+                            aria-expanded="false"
+                            aria-controls="ipdMenu"
+                          >
+                            IPD Management
                           </a>
-                        </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            Ward/Bed Allocation
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            Prescriptions
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            Lab Orders
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            Discharge Summary
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" className="nav-link">
-                            Billing
-                          </a>
+                          <ul
+                            className="flex-column sub-menu collapse"
+                            id="ipdMenu"
+                            data-bs-parent="#charts"
+                            style={{ listStyle: "none" }}
+                          >
+                            <li>
+                              <a href="#" className="nav-link">
+                                Add Patient
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                View Patient
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                Ward/Bed Allocation
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                Prescriptions
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                Lab Orders
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                Discharge Summary
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link">
+                                Billing
+                              </a>
+                            </li>
+                          </ul>
                         </li>
                       </ul>
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            )}
-            {isAllowed("schedule") && (
-              <li className="nav-item">
-                <a
-                  className="nav-link"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setOpenMenu(openMenu === "schedule" ? null : "schedule");
-                  }}
-                >
-                  <span className="menu-title">Doctor’s Schedule</span>
-                  <i className="fa fa-calendar-alt menu-icon" />
-                </a>
-                <div
-                  className={`collapse ${
-                    openMenu === "schedule" ? "show" : ""
-                  }`}
-                  data-menu-key="schedule"
-                >
-                  <ul className="nav flex-column sub-menu">
-                    <li className="nav-item">
-                      <NavLink
-                        className="nav-link"
-                        to="/dashboard/add-doctor-schedule"
-                      >
-                        Add Schedule
-                      </NavLink>
-                    </li>
-                    <li className="nav-item">
-                      <NavLink
-                        className="nav-link"
-                        to="view-doctor-schedule-list"
-                      >
-                        View Schedule{" "}
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            )}
-            {isAllowed("appointments") && (
-              <li className="nav-item">
-                <a
-                  className="nav-link"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setOpenMenu(
-                      openMenu === "appointments" ? null : "appointments"
-                    );
-                  }}
-                >
-                  <span className="menu-title">Appointments</span>
-                  <i className="fa fa-calendar-check menu-icon" />
-                </a>
-                <div
-                  className={`collapse ${
-                    openMenu === "appointments" ? "show" : ""
-                  }`}
-                >
-                  <ul className="nav flex-column sub-menu">
-                    <li className="nav-item">
-                      <NavLink
-                        className="nav-link"
-                        to="add-patient-appointment"
-                      >
-                        {" "}
-                        Add Appointments{" "}
-                      </NavLink>
-                    </li>
-                    <li className="nav-item">
-                      <NavLink
-                        className="nav-link"
-                        to="view-patient-appointments"
-                      >
-                        {" "}
-                        View Appointments{" "}
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            )}
-            {isAllowed("billing") && (
-              <li className="nav-item">
-                <NavLink to="#" className="nav-link">
-                  <span className="menu-title">Invoice</span>
-                  <i className="fa fa-file-invoice menu-icon" />
-                </NavLink>
-              </li>
-            )}
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "case" ? null : "case");
-                }}
-              >
-                <span className="menu-title">Case Manager</span>
-                <i className="fa fa-briefcase-medical menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "case" ? "show" : ""}`}
-                data-menu-key="case"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <a className="nav-link" href="add-case-study.html">
-                      Add Case Study
-                    </a>
+                    </div>
                   </li>
+                )}
+                {isAllowed("schedule") && (
                   <li className="nav-item">
-                    <a className="nav-link" href="case-list.html">
-                      View Case Study
+                    <a
+                      className="nav-link"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setOpenMenu(
+                          openMenu === "schedule" ? null : "schedule"
+                        );
+                      }}
+                    >
+                      <span className="menu-title">Doctor’s Schedule</span>
+                      <i className="fa fa-calendar-alt menu-icon" />
                     </a>
+                    <div
+                      className={`collapse ${
+                        openMenu === "schedule" ? "show" : ""
+                      }`}
+                      data-menu-key="schedule"
+                    >
+                      <ul className="nav flex-column sub-menu">
+                        <li className="nav-item">
+                          <NavLink
+                            className="nav-link"
+                            to="/dashboard/add-doctor-schedule"
+                          >
+                            Add Schedule
+                          </NavLink>
+                        </li>
+                        <li className="nav-item">
+                          <NavLink
+                            className="nav-link"
+                            to="view-doctor-schedule-list"
+                          >
+                            View Schedule{" "}
+                          </NavLink>
+                        </li>
+                      </ul>
+                    </div>
                   </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "bed" ? null : "bed");
-                }}
-              >
-                <span className="menu-title">Bed Manager</span>
-                <i className="fa fa-bed menu-icon" />
-                {/* <i class="fa-solid fa-bed-pulse"></i> */}
-              </a>
-              <div
-                className={`collapse ${openMenu === "bed" ? "show" : ""}`}
-                data-menu-key="bed"
-              >
-                <ul className="nav flex-column sub-menu">
+                )}
+                {isAllowed("appointments") && (
                   <li className="nav-item">
-                    <NavLink className="nav-link" to="add-beds">
-                      Add New Bed
+                    <a
+                      className="nav-link"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setOpenMenu(
+                          openMenu === "appointments" ? null : "appointments"
+                        );
+                      }}
+                    >
+                      <span className="menu-title">Appointments</span>
+                      <i className="fa fa-calendar-check menu-icon" />
+                    </a>
+                    <div
+                      className={`collapse ${
+                        openMenu === "appointments" ? "show" : ""
+                      }`}
+                    >
+                      <ul className="nav flex-column sub-menu">
+                        <li className="nav-item">
+                          <NavLink
+                            className="nav-link"
+                            to="add-patient-appointment"
+                          >
+                            {" "}
+                            Add Appointments{" "}
+                          </NavLink>
+                        </li>
+                        <li className="nav-item">
+                          <NavLink
+                            className="nav-link"
+                            to="view-patient-appointments"
+                          >
+                            {" "}
+                            View Appointments{" "}
+                          </NavLink>
+                        </li>
+                      </ul>
+                    </div>
+                  </li>
+                )}
+                {isAllowed("billing") && (
+                  <li className="nav-item">
+                    <NavLink to="#" className="nav-link">
+                      <span className="menu-title">Invoice</span>
+                      <i className="fa fa-file-invoice menu-icon" />
                     </NavLink>
                   </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="add-room">
-                      Add New Room
-                    </NavLink>
-                  </li>
+                )}
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(openMenu === "case" ? null : "case");
+                    }}
+                  >
+                    <span className="menu-title">Case Manager</span>
+                    <i className="fa fa-briefcase-medical menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${openMenu === "case" ? "show" : ""}`}
+                    data-menu-key="case"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <a className="nav-link" href="add-case-study.html">
+                          Add Case Study
+                        </a>
+                      </li>
+                      <li className="nav-item">
+                        <a className="nav-link" href="case-list.html">
+                          View Case Study
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(openMenu === "bed" ? null : "bed");
+                    }}
+                  >
+                    <span className="menu-title">Bed Manager</span>
+                    <i className="fa fa-bed menu-icon" />
+                    {/* <i class="fa-solid fa-bed-pulse"></i> */}
+                  </a>
+                  <div
+                    className={`collapse ${openMenu === "bed" ? "show" : ""}`}
+                    data-menu-key="bed"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="add-beds">
+                          Add New Bed
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="add-room">
+                          Add New Room
+                        </NavLink>
+                      </li>
 
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="bed-list">
-                      Bed List
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "reports" ? null : "reports");
-                }}
-              >
-                <span className="menu-title">Reports</span>
-                <i className="fa fa-file-medical-alt menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "reports" ? "show" : ""}`}
-                data-menu-key="reports"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#pathMenu"
-                      aria-expanded="false"
-                      aria-controls="pathMenu"
-                    >
-                      Pathology Reports
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="pathMenu"
-                      data-bs-parent="#reports"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <NavLink to="add-pathology-report" className="nav-link">
-                          Add New Report
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="bed-list">
+                          Bed List
                         </NavLink>
                       </li>
-                      <li>
-                        <NavLink
-                          to="manage-pathology-reports"
+                    </ul>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(openMenu === "reports" ? null : "reports");
+                    }}
+                  >
+                    <span className="menu-title">Reports</span>
+                    <i className="fa fa-file-medical-alt menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${
+                      openMenu === "reports" ? "show" : ""
+                    }`}
+                    data-menu-key="reports"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <a
                           className="nav-link"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#pathMenu"
+                          aria-expanded="false"
+                          aria-controls="pathMenu"
                         >
-                          Manage Reports
-                        </NavLink>
+                          Pathology Reports
+                        </a>
+                        <ul
+                          className="flex-column sub-menu collapse"
+                          id="pathMenu"
+                          data-bs-parent="#reports"
+                          style={{ listStyle: "none" }}
+                        >
+                          <li>
+                            <NavLink
+                              to="add-pathology-report"
+                              className="nav-link"
+                            >
+                              Add New Report
+                            </NavLink>
+                          </li>
+                          <li>
+                            <NavLink
+                              to="manage-pathology-reports"
+                              className="nav-link"
+                            >
+                              Manage Reports
+                            </NavLink>
+                          </li>
+                        </ul>
                       </li>
-                    </ul>
-                  </li>
-                  <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#radMenu"
-                      aria-expanded="false"
-                      aria-controls="radMenu"
-                    >
-                      Radiology Reports
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="radMenu"
-                      data-bs-parent="#reports"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <NavLink to="add-radiology-report" className="nav-link">
-                          Add New Report
-                        </NavLink>
-                      </li>
-                      <li>
-                        <NavLink
-                          to="manage-radiology-reports"
+                      <li className="nav-item">
+                        <a
                           className="nav-link"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#radMenu"
+                          aria-expanded="false"
+                          aria-controls="radMenu"
                         >
-                          Manage Reports
+                          Radiology Reports
+                        </a>
+                        <ul
+                          className="flex-column sub-menu collapse"
+                          id="radMenu"
+                          data-bs-parent="#reports"
+                          style={{ listStyle: "none" }}
+                        >
+                          <li>
+                            <NavLink
+                              to="add-radiology-report"
+                              className="nav-link"
+                            >
+                              Add New Report
+                            </NavLink>
+                          </li>
+                          <li>
+                            <NavLink
+                              to="manage-radiology-reports"
+                              className="nav-link"
+                            >
+                              Manage Reports
+                            </NavLink>
+                          </li>
+                        </ul>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink
+                          className="nav-link"
+                          to="baby-birth-certificate"
+                        >
+                          Birth Reports
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="death-certificate">
+                          Death Reports
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink
+                          className="nav-link"
+                          to="manage-birth-certificates"
+                        >
+                          Manage Birth Certificates
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink
+                          className="nav-link"
+                          to="manage-death-certificates"
+                        >
+                          Manage Birth Certificates
                         </NavLink>
                       </li>
                     </ul>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="baby-birth-certificate">
-                      Birth Reports
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="death-certificate">
-                      Death Reports
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link"
-                      to="manage-birth-certificates"
-                    >
-                      Manage Birth Certificates
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link"
-                      to="manage-death-certificates"
-                    >
-                      Manage Birth Certificates
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(
-                    openMenu === "prescriptions" ? null : "prescriptions"
-                  );
-                }}
-              >
-                <span className="menu-title">Prescriptions</span>
-                <i className="fa fa-prescription-bottle-alt menu-icon" />
-              </a>
-              <div
-                className={`collapse ${
-                  openMenu === "prescriptions" ? "show" : ""
-                }`}
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="add-new-prescription">
-                      Add New Prescriptions
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="manage-prescriptions">
-                      Manage Prescriptions
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "pharmacy" ? null : "pharmacy");
-                }}
-              >
-                <span className="menu-title">Pharmacy</span>
-                <i className="fa fa-pills menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "pharmacy" ? "show" : ""}`}
-                data-menu-key="pharmacy"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="pharmacy-module">
-                      Inventory
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "insurance" ? null : "insurance");
-                }}
-              >
-                <span className="menu-title">Insurance</span>
-                <i className="fa fa-shield-alt menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "insurance" ? "show" : ""}`}
-                data-menu-key="insurance"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#polMenu"
-                      aria-expanded="false"
-                      aria-controls="polMenu"
-                    >
-                      Policy Management
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="polMenu"
-                      data-bs-parent="#insurance"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <a href="#" className="nav-link">
-                          Add Insurance/Register Patient
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(
+                        openMenu === "prescriptions" ? null : "prescriptions"
+                      );
+                    }}
+                  >
+                    <span className="menu-title">Prescriptions</span>
+                    <i className="fa fa-prescription-bottle-alt menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${
+                      openMenu === "prescriptions" ? "show" : ""
+                    }`}
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="add-new-prescription">
+                          Add New Prescriptions
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="manage-prescriptions">
+                          Manage Prescriptions
+                        </NavLink>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(openMenu === "pharmacy" ? null : "pharmacy");
+                    }}
+                  >
+                    <span className="menu-title">Pharmacy</span>
+                    <i className="fa fa-pills menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${
+                      openMenu === "pharmacy" ? "show" : ""
+                    }`}
+                    data-menu-key="pharmacy"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="pharmacy-module">
+                          Inventory
+                        </NavLink>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(
+                        openMenu === "insurance" ? null : "insurance"
+                      );
+                    }}
+                  >
+                    <span className="menu-title">Insurance</span>
+                    <i className="fa fa-shield-alt menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${
+                      openMenu === "insurance" ? "show" : ""
+                    }`}
+                    data-menu-key="insurance"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <a
+                          className="nav-link"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#polMenu"
+                          aria-expanded="false"
+                          aria-controls="polMenu"
+                        >
+                          Policy Management
+                        </a>
+                        <ul
+                          className="flex-column sub-menu collapse"
+                          id="polMenu"
+                          data-bs-parent="#insurance"
+                          style={{ listStyle: "none" }}
+                        >
+                          <li>
+                            <a href="#" className="nav-link">
+                              Add Insurance/Register Patient
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" className="nav-link">
+                              Manage Insurance
+                            </a>
+                          </li>
+                        </ul>
+                      </li>
+                      <li className="nav-item">
+                        <a
+                          className="nav-link"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#claimMenu"
+                          aria-expanded="false"
+                          aria-controls="claimMenu"
+                        >
+                          Claims
+                        </a>
+                        <ul
+                          className="flex-column sub-menu collapse"
+                          id="claimMenu"
+                          data-bs-parent="#insurance"
+                          style={{ listStyle: "none" }}
+                        >
+                          <li>
+                            <a href="#" className="nav-link">
+                              Add Claim
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" className="nav-link">
+                              Manage Claims
+                            </a>
+                          </li>
+                        </ul>
+                      </li>
+                      <li className="nav-item">
+                        <a
+                          className="nav-link"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#rpMenu"
+                          aria-expanded="false"
+                          aria-controls="rpMenu"
+                        >
+                          Report
+                        </a>
+                        <ul
+                          className="flex-column sub-menu collapse"
+                          id="rpMenu"
+                          data-bs-parent="#insurance"
+                          style={{ listStyle: "none" }}
+                        >
+                          <li>
+                            <a href="#" className="nav-link">
+                              Claim Summary / Report
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" className="nav-link">
+                              Outstanding Claim Report
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" className="nav-link">
+                              Approval Report
+                            </a>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(openMenu === "blood" ? null : "blood");
+                    }}
+                  >
+                    <span className="menu-title">Blood Bank</span>
+                    <i className="fa fa-tint menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${openMenu === "blood" ? "show" : ""}`}
+                    data-menu-key="blood"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="add-new-donor">
+                          Add New Donor
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="manage-donors">
+                          Manage Donors
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="add-stock">
+                          Add Blood Stock
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="blood-stock">
+                          Manage Blood Stock
+                        </NavLink>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(openMenu === "finances" ? null : "finances");
+                    }}
+                  >
+                    <span className="menu-title">Finances</span>
+                    <i className="fa fa-wallet menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${
+                      openMenu === "finances" ? "show" : ""
+                    }`}
+                    data-menu-key="finances"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <a className="nav-link" href="#">
+                          Add Invoice
                         </a>
                       </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Manage Insurance
+                      <li className="nav-item">
+                        <a className="nav-link" href="#">
+                          Manage Invoices
+                        </a>
+                      </li>
+                      <li className="nav-item">
+                        <a className="nav-link" href="#">
+                          Financial Report
                         </a>
                       </li>
                     </ul>
-                  </li>
-                  <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#claimMenu"
-                      aria-expanded="false"
-                      aria-controls="claimMenu"
-                    >
-                      Claims
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="claimMenu"
-                      data-bs-parent="#insurance"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <a href="#" className="nav-link">
-                          Add Claim
-                        </a>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(openMenu === "assets" ? null : "assets");
+                    }}
+                  >
+                    <span className="menu-title">Asset Management</span>
+                    <i className="fa fa-cogs menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${
+                      openMenu === "assets" ? "show" : ""
+                    }`}
+                    data-menu-key="assets"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="add-asset">
+                          Add New Assets
+                        </NavLink>
                       </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Manage Claims
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-                  <li className="nav-item">
-                    <a
-                      className="nav-link"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#rpMenu"
-                      aria-expanded="false"
-                      aria-controls="rpMenu"
-                    >
-                      Report
-                    </a>
-                    <ul
-                      className="flex-column sub-menu collapse"
-                      id="rpMenu"
-                      data-bs-parent="#insurance"
-                      style={{ listStyle: "none" }}
-                    >
-                      <li>
-                        <a href="#" className="nav-link">
-                          Claim Summary / Report
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Outstanding Claim Report
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="nav-link">
-                          Approval Report
-                        </a>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="asset-list">
+                          Manage Assets
+                        </NavLink>
                       </li>
                     </ul>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "blood" ? null : "blood");
-                }}
-              >
-                <span className="menu-title">Blood Bank</span>
-                <i className="fa fa-tint menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "blood" ? "show" : ""}`}
-                data-menu-key="blood"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="add-new-donor">
-                      Add New Donor
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="manage-donors">
-                      Manage Donors
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="add-stock">
-                      Add Blood Stock
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="blood-stock">
-                      Manage Blood Stock
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "finances" ? null : "finances");
-                }}
-              >
-                <span className="menu-title">Finances</span>
-                <i className="fa fa-wallet menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "finances" ? "show" : ""}`}
-                data-menu-key="finances"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <a className="nav-link" href="#">
-                      Add Invoice
-                    </a>
-                  </li>
-                  <li className="nav-item">
-                    <a className="nav-link" href="#">
-                      Manage Invoices
-                    </a>
-                  </li>
-                  <li className="nav-item">
-                    <a className="nav-link" href="#">
-                      Financial Report
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "assets" ? null : "assets");
-                }}
-              >
-                <span className="menu-title">Asset Management</span>
-                <i className="fa fa-cogs menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "assets" ? "show" : ""}`}
-                data-menu-key="assets"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="add-asset">
-                      Add New Assets
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="asset-list">
-                      Manage Assets
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            {/* <li className="nav-item">
+                  </div>
+                </li>
+                {/* <li className="nav-item">
               <a
                 className="nav-link"
                 href="#"
@@ -1006,112 +1172,125 @@ const Layout = () => {
                 </ul>
               </div>
             </li> */}
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "ambulance" ? null : "ambulance");
-                }}
-              >
-                <span className="menu-title">Ambulance Management</span>
-                <i className="fa fa-ambulance menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "ambulance" ? "show" : ""}`}
-                data-menu-key="ambulance"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="ambulance-dashboard">
-                      Ambulance Dashboard
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="ambulance-add">
-                      Add New Ambulance
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="ambulance-assignment">
-                      Ambulance Assignment
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="add-driver">
-                      Add Driver
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "packages" ? null : "packages");
-                }}
-              >
-                <span className="menu-title">Health Packages</span>
-                <i className="fa fa-heartbeat menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "packages" ? "show" : ""}`}
-                data-menu-key="packages"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="add-health-package">
-                      Add Health Packages
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="manage-health-packages">
-                      Manage Health Packages
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <a
-                className="nav-link"
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMenu(openMenu === "notice" ? null : "notice");
-                }}
-              >
-                <span className="menu-title">Notice Board</span>
-                <i className="fa fa-bullhorn menu-icon" />
-              </a>
-              <div
-                className={`collapse ${openMenu === "notice" ? "show" : ""}`}
-                data-menu-key="notice"
-              >
-                <ul className="nav flex-column sub-menu">
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="add-new-notice">
-                      Add New Notice
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="manage-notices">
-                      Manage Notices
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" to="settings">
-                <span className="menu-title">Settings</span>
-                <i className="fa fa-cog menu-icon" />
-              </NavLink>
-            </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(
+                        openMenu === "ambulance" ? null : "ambulance"
+                      );
+                    }}
+                  >
+                    <span className="menu-title">Ambulance Management</span>
+                    <i className="fa fa-ambulance menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${
+                      openMenu === "ambulance" ? "show" : ""
+                    }`}
+                    data-menu-key="ambulance"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="ambulance-dashboard">
+                          Ambulance Dashboard
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="ambulance-add">
+                          Add New Ambulance
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="ambulance-assignment">
+                          Ambulance Assignment
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="add-driver">
+                          Add Driver
+                        </NavLink>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(openMenu === "packages" ? null : "packages");
+                    }}
+                  >
+                    <span className="menu-title">Health Packages</span>
+                    <i className="fa fa-heartbeat menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${
+                      openMenu === "packages" ? "show" : ""
+                    }`}
+                    data-menu-key="packages"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="add-health-package">
+                          Add Health Packages
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink
+                          className="nav-link"
+                          to="manage-health-packages"
+                        >
+                          Manage Health Packages
+                        </NavLink>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className="nav-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenMenu(openMenu === "notice" ? null : "notice");
+                    }}
+                  >
+                    <span className="menu-title">Notice Board</span>
+                    <i className="fa fa-bullhorn menu-icon" />
+                  </a>
+                  <div
+                    className={`collapse ${
+                      openMenu === "notice" ? "show" : ""
+                    }`}
+                    data-menu-key="notice"
+                  >
+                    <ul className="nav flex-column sub-menu">
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="add-new-notice">
+                          Add New Notice
+                        </NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link" to="manage-notices">
+                          Manage Notices
+                        </NavLink>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="settings">
+                    <span className="menu-title">Settings</span>
+                    <i className="fa fa-cog menu-icon" />
+                  </NavLink>
+                </li>
+              </>
+            )}
           </ul>
         </nav>
         {/* partial */}
