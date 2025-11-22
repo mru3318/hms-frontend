@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
-import { API_BASE_URL } from "../../config";
+// import { API_BASE_URL } from "../../config";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Decode JWT without external dependencies
 function decodeBase64Url(input) {
@@ -66,7 +68,7 @@ export const initializeAuth = createAsyncThunk(
   "auth/initialize",
   async (_, { fulfillWithValue }) => {
     if (typeof window === "undefined") return fulfillWithValue(null);
-    // Prefer structured 'auth' object, but fall back to legacy/raw 'authToken'
+    // Prefer structured 'auth' object
     const raw = localStorage.getItem("auth");
     if (raw) {
       try {
@@ -75,7 +77,6 @@ export const initializeAuth = createAsyncThunk(
         const now = Date.now();
         if (!token || (exp && now > exp)) {
           localStorage.removeItem("auth");
-          localStorage.removeItem("authToken");
           return fulfillWithValue(null);
         }
         if (axios?.defaults?.headers) {
@@ -87,37 +88,32 @@ export const initializeAuth = createAsyncThunk(
       }
     }
 
-    // Fallback: raw token stored under 'authToken'
-    const rawToken = localStorage.getItem("authToken");
-    if (!rawToken) return fulfillWithValue(null);
+    return fulfillWithValue(null);
+  }
+);
+
+// Hydrate legacy `auth` shape from localStorage (keeps backward compatibility)
+export const hydrateAuth = createAsyncThunk(
+  "auth/hydrateAuth",
+  async (_, thunkAPI) => {
     try {
-      const decoded = parseJwt(rawToken);
-      const roles = Array.isArray(decoded?.roles) ? decoded.roles : [];
-      const permissions = Array.isArray(decoded?.permissions)
-        ? decoded.permissions
-        : [];
-      const user = decoded?.user || {
-        username: decoded?.sub || null,
-        email: decoded?.email || null,
-        firstName: decoded?.firstName || null,
-        lastName: decoded?.lastName || null,
-        userId: decoded?.userId || null,
-      };
-      const exp = decoded?.exp ? decoded.exp * 1000 : null;
-      if (axios?.defaults?.headers) {
-        axios.defaults.headers.common["Authorization"] = `Bearer ${rawToken}`;
+      const stored = localStorage.getItem("auth");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const { user, roles, permissions, exp, token } = parsed;
+
+        if (!token || !exp || !permissions) {
+          return thunkAPI.rejectWithValue({ message: "Invalid stored auth" });
+        }
+
+        console.log("Hydrating auth...");
+        console.log("Stored auth:", localStorage.getItem("auth"));
+
+        return { user, roles, permissions, exp, token };
       }
-      return fulfillWithValue({
-        token: rawToken,
-        user,
-        roles,
-        permissions,
-        exp,
-      });
+      return thunkAPI.rejectWithValue({ message: "No stored auth" });
     } catch {
-      // invalid token
-      localStorage.removeItem("authToken");
-      return fulfillWithValue(null);
+      return thunkAPI.rejectWithValue({ message: "Failed to hydrate auth" });
     }
   }
 );
@@ -152,9 +148,7 @@ const authSlice = createSlice({
       if (typeof window !== "undefined") {
         localStorage.removeItem("auth");
         // Remove legacy key if still present
-        localStorage.removeItem("authUser");
-        // Also remove raw token key
-        localStorage.removeItem("authToken");
+        localStorage.removeItem("auth");
       }
       // Clear axios Authorization header
       if (axios && axios.defaults && axios.defaults.headers) {
@@ -244,8 +238,6 @@ const authSlice = createSlice({
             "auth",
             JSON.stringify({ token, user, roles, permissions, exp })
           );
-          // Also save raw token for other code paths that expect it
-          if (token) localStorage.setItem("authToken", token);
         }
       })
       .addCase(login.rejected, (state, action) => {
@@ -253,6 +245,38 @@ const authSlice = createSlice({
         state.error =
           (action.payload && action.payload.message) || action.error.message;
         state.message = null;
+        state.isAuthenticated = false;
+      })
+      //hydrateAuth lifecycle
+      .addCase(hydrateAuth.fulfilled, (state, action) => {
+        const { user, roles, permissions, exp, token } = action.payload;
+        const now = Date.now() / 1000;
+
+        if (exp && exp < now) {
+          state.status = "failed";
+          state.user = null;
+          state.roles = [];
+          state.permissions = [];
+          state.token = null;
+          state.isAuthenticated = false;
+          state.error = "Session expired. Please login again.";
+          return;
+        }
+
+        state.user = user;
+        state.roles = roles;
+        state.permissions = permissions;
+        state.token = token;
+        state.isAuthenticated = true;
+        state.status = "succeeded";
+      })
+      .addCase(hydrateAuth.rejected, (state) => {
+        localStorage.removeItem("auth");
+        state.user = null;
+        state.roles = [];
+        state.permissions = [];
+        state.token = null;
+        state.status = "failed";
         state.isAuthenticated = false;
       })
       .addCase(initializeAuth.fulfilled, (state, action) => {
@@ -279,7 +303,6 @@ export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectAuthRoles = (state) => state.auth.roles;
 export const selectAuthPermissions = (state) => state.auth.permissions || [];
-export const selectAuthToken = (state) => state.auth.token || null;
 export const selectAuthExpiry = (state) => state.auth.expiresAt || null;
 export const selectAuthStatus = (state) => state.auth.status;
 export const selectAuthError = (state) => state.auth.error;

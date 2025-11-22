@@ -1,9 +1,20 @@
 import React from "react";
 import img from "/assets/images/dashboard/Receptionist.png";
 const ReceptionistDashboard = () => {
+ 
+ 
+    // ===== Dynamic Greeting Logic =====
+  const currentHour = new Date().getHours();
+  let greeting = "Good Morning";
+
+  if (currentHour >= 12 && currentHour < 16) {
+    greeting = "Good Afternoon";
+  } else if (currentHour >= 16) {
+    greeting = "Good Evening";
+  }
   return (
     <>
-      <div className="container my-3">
+      
         <div className="header-toolbar d-flex justify-content-between align-items-center">
           <div className="d-flex align-items-center">
             <a
@@ -11,9 +22,9 @@ const ReceptionistDashboard = () => {
               href="#"
             >
               <i className="fas fa-home me-2" />
-              Home
+             Welcome Receptionist
             </a>
-            <span className="text-muted mx-2"> Welcome Receptionist</span>
+        
           </div>
           <div className="d-flex align-items-center">
             <button
@@ -26,12 +37,12 @@ const ReceptionistDashboard = () => {
             </button>
           </div>
         </div>
-        <div className="container mt-4">
+        
           <div className="row">
             <div className="col-12">
               <div className="jumbotron-hero">
                 <div>
-                  <h5 className="fw-normal">Good Morning.</h5>
+                  <h5 className="fw-normal">{greeting}.</h5>
                   <h2 className="fw-bold">Receptionist</h2>
                 </div>
                 <div className="card-container">
@@ -72,12 +83,12 @@ const ReceptionistDashboard = () => {
             </div>
           </div>
           <div className="row g-4 mt-2">
-            <div className="container mt-2">
-              <div className="main-panel">
-                <div className="content-wrapper">
+            
+              
+                
                   {/* ############################################################## */}
                   {/* Add your code here....... */}
-                  <div className="container">
+                  
                     <div className="row g-3 mt-0">
                       {/* Total X-Rays */}
                       <div className="col-lg-3 col-md-6 col-sm-12">
@@ -176,52 +187,65 @@ const ReceptionistDashboard = () => {
                     <div className="row g-3 mt-3">
                       {/* Notices */}
                       <div className="col-lg-6 d-flex">
-                        <div className="bg-white rounded-3 shadow-sm p-3 flex-fill">
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <h6 className="fw-bold mb-0">LATEST NOTICES</h6>
-                            <div className="d-flex align-items-center gap-2">
-                              <span className="badge bg-danger">3 UNREAD</span>
-                              <a
-                                href="#"
-                                className="text-decoration-none text-primary fw-semibold"
-                              >
-                                View All »
-                              </a>
-                            </div>
-                          </div>
-                          <hr className="my-2" />
-                          <div className="list-group list-group-flush">
-                            <div className="list-group-item d-flex justify-content-between align-items-center">
-                              <div>
-                                <i className="fas fa-file-alt text-primary me-2" />
-                                New Visitor Policy Update
-                              </div>
-                              <small className="text-muted">1h ago</small>
-                            </div>
-                            <div className="list-group-item d-flex justify-content-between align-items-center">
-                              <div>
-                                <i className="fas fa-cog text-warning me-2" />
-                                Doctor Schedule Change
-                              </div>
-                              <small className="text-muted">2h ago</small>
-                            </div>
-                            <div className="list-group-item d-flex justify-content-between align-items-center">
-                              <div>
-                                <i className="fas fa-network-wired text-primary me-2" />
-                                General Announcement
-                              </div>
-                              <small className="text-muted">1h ago</small>
-                            </div>
-                            <div className="list-group-item d-flex justify-content-between align-items-center">
-                              <div>
-                                <i className="fas fa-tools text-danger me-2" />
-                                Maintenance Alert
-                              </div>
-                              <small className="text-muted">Yesterday</small>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+  <div className="bg-white rounded-3 shadow-sm p-3 flex-fill">
+    <div className="d-flex justify-content-between align-items-center mb-2">
+      <h6 className="fw-bold mb-0">LATEST NOTICES</h6>
+      <div className="d-flex align-items-center gap-2">
+        <span className="badge bg-danger">4 UNREAD</span>
+        <a href="#" className="text-decoration-none text-primary fw-semibold">
+          View All »
+        </a>
+      </div>
+    </div>
+
+    <hr className="my-2" />
+
+    <div className="list-group list-group-flush">
+      
+      <div className="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <i className="fas fa-user-clock text-primary me-2" />
+          VIP Patient Arrival – Prepare Priority Desk
+        </div>
+        <small className="text-muted">20m ago</small>
+      </div>
+
+      <div className="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <i className="fas fa-calendar-check text-success me-2" />
+          OPD Token System Updated for Today
+        </div>
+        <small className="text-muted">1h ago</small>
+      </div>
+
+      <div className="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <i className="fas fa-user-nurse text-warning me-2" />
+          New Duty Roster for Reception Team Released
+        </div>
+        <small className="text-muted">2h ago</small>
+      </div>
+
+      <div className="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <i className="fas fa-bell text-danger me-2" />
+          Emergency Ward Overload – Redirect Patients
+        </div>
+        <small className="text-muted">3h ago</small>
+      </div>
+
+      <div className="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <i className="fas fa-tools text-secondary me-2" />
+          Reception Printer Maintenance Scheduled
+        </div>
+        <small className="text-muted">Yesterday</small>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
                       {/* Overview */}
                       <div className="col-lg-6 d-flex">
                         <div className="bg-white rounded-3 shadow-sm p-3 flex-fill">
@@ -282,38 +306,18 @@ const ReceptionistDashboard = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                 
                   {/* content-wrapper ends */}
                   {/* partial:partials/_footer.html */}
-                  <footer className="footer mt-4">
-                    <div className="d-sm-flex justify-content-center justify-content-sm-between">
-                      <span className="text-muted text-center text-sm-left d-block d-sm-inline-block">
-                        Copyright © 2025 Hospital Management System. All rights
-                        reserved.
-                      </span>
-                      <span className="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">
-                        Designed and Developed by
-                        <a
-                          href="https://kavyainfoweb.com/"
-                          target="_blank"
-                          style={{
-                            textDecoration: "none",
-                            color: "rgb(2, 62, 62)",
-                          }}
-                        >
-                          Kavya Infoweb Pvt. Ltd.
-                        </a>
-                      </span>
-                    </div>
-                  </footer>
+                
                   {/* partial */}
-                </div>
+                
                 {/* main-panel ends */}
-              </div>
-            </div>
+              
+           
           </div>
-        </div>
-      </div>
+       
+      
     </>
   );
 };

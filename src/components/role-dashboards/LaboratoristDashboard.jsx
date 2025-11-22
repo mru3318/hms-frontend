@@ -2,9 +2,19 @@ import React from "react";
 import img from "/assets/images/dashboard/radiology.png";
 
 const LaboratoristDashboard = () => {
+  // ===== Dynamic Greeting Logic =====
+  const currentHour = new Date().getHours();
+  let greeting = "Good Morning";
+
+  if (currentHour >= 12 && currentHour < 16) {
+    greeting = "Good Afternoon";
+  } else if (currentHour >= 16) {
+    greeting = "Good Evening";
+  }
+ 
   return (
     <>
-      <div className="container my-3">
+      
         <div className="header-toolbar d-flex justify-content-between align-items-center">
           <div className="d-flex align-items-center">
             <a
@@ -12,12 +22,9 @@ const LaboratoristDashboard = () => {
               href="#"
             >
               <i className="fas fa-home me-2" />
-              Home
+            Welcome Laboratorist
             </a>
-            <span className="text-muted mx-2">
-              {" "}
-              / Pathology &amp; Radiology Dashboard{" "}
-            </span>
+           
           </div>
           <div className="d-flex align-items-center">
             <button
@@ -30,12 +37,12 @@ const LaboratoristDashboard = () => {
             </button>
           </div>
         </div>
-        <div className="container mt-4">
+        
           <div className="row">
             <div className="col-12">
               <div className="jumbotron-hero">
                 <div>
-                  <h5 className="fw-normal">Good Morning.</h5>
+                   <h5 className="fw-normal">{greeting}.</h5>
                   <h2 className="fw-bold">Pathology &amp; Radiology</h2>
                 </div>
                 <div className="card-container">
@@ -76,12 +83,12 @@ const LaboratoristDashboard = () => {
             </div>
           </div>
           <div className="row g-4 mt-2">
-            <div className="container mt-2">
-              <div className="main-panel">
-                <div className="content-wrapper">
+           
+              
+                
                   {/* ############################################################## */}
                   {/* Add your code here....... */}
-                  <div className="container">
+                  
                     <div className="row g-3 mt-0">
                       <div className="col-lg-3 col-md-6 col-sm-12">
                         <div
@@ -276,15 +283,26 @@ const LaboratoristDashboard = () => {
                           </div>
                           <hr />
                           {/* Notice Item */}
-                          <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                            <div className="d-flex align-items-center">
-                              <span className="text-primary me-2">
-                                <i className="fas fa-file-alt" />
-                              </span>
-                              <span className="fw-semibold">HR</span>
-                            </div>
-                            <small className="text-muted">1h ago</small>
-                          </div>
+                         <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
+  <div className="d-flex align-items-center">
+    <span className="text-primary me-2">
+      <i className="fas fa-xray" /> {/* Radiology icon */}
+    </span>
+    <span className="fw-semibold">Radiology</span>
+  </div>
+  <small className="text-muted">30m ago</small>
+</div>
+
+<div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
+  <div className="d-flex align-items-center">
+    <span className="text-danger me-2">
+      <i className="fas fa-vial" /> {/* Pathology icon */}
+    </span>
+    <span className="fw-semibold">Pathology</span>
+  </div>
+  <small className="text-muted">10m ago</small>
+</div>
+
                           <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
                             <div className="d-flex align-items-center">
                               <span className="text-warning me-2">
@@ -334,112 +352,100 @@ const LaboratoristDashboard = () => {
                           </div>
                         </div>
                       </div>
-                      {/* Hospital Earnings */}
-                      <div className="col-lg-6 col-md-12 col-sm-12">
-                        <div className="analytics-card hospital-earnings">
-                          {/* Header */}
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <h6 className="mb-0 fw-bold">Hospital Earnings</h6>
-                            <div>
-                              <a href="#" className="ms-2 text-decoration-none">
-                                View Report »
-                              </a>
-                            </div>
-                          </div>
-                          <hr />
-                          {/* Content */}
-                          <div className="row g-3">
-                            {/* Online Consultation */}
-                            <div className="col-sm-6 col-12">
-                              <div
-                                className="p-3 border h-100"
-                                style={{ borderRadius: 1 }}
-                              >
-                                <h5>
-                                  ₹4900{" "}
-                                  <small className="text-success">20% ↑</small>
-                                </h5>
-                                <p className="mb-0">Online Consultation</p>
-                              </div>
-                            </div>
-                            {/* Overall Purchases */}
-                            <div className="col-sm-6 col-12">
-                              <div
-                                className="p-3 border h-100"
-                                style={{ borderRadius: 1 }}
-                              >
-                                <h5>
-                                  ₹750{" "}
-                                  <small className="text-danger">26% ↓</small>
-                                </h5>
-                                <p className="mb-0">Overall Purchases</p>
-                              </div>
-                            </div>
-                            {/* Pending Invoices */}
-                            <div className="col-sm-6 col-12">
-                              <div
-                                className="p-3 border h-100"
-                                style={{ borderRadius: 1 }}
-                              >
-                                <h5>
-                                  ₹560{" "}
-                                  <small className="text-success">28% ↑</small>
-                                </h5>
-                                <p className="mb-0">Pending Invoices</p>
-                              </div>
-                            </div>
-                            {/* Monthly Billing */}
-                            <div className="col-sm-6 col-12">
-                              <div
-                                className="p-3 border h-100"
-                                style={{ borderRadius: 1 }}
-                              >
-                                <h5>
-                                  ₹390{" "}
-                                  <small className="text-success">30% ↑</small>
-                                </h5>
-                                <p className="mb-0">Monthly Billing</p>
-                              </div>
-                            </div>
-                          </div>
-                          <br />
-                          <br />
-                        </div>
-                      </div>
-                    </div>
-                    {/* ####################################################################### */}
-                  </div>
-                  {/* content-wrapper ends */}
-                  {/* partial:partials/_footer.html */}
-                  <footer className="footer mt-4">
-                    <div className="d-sm-flex justify-content-center justify-content-sm-between">
-                      <span className="text-muted text-center text-sm-left d-block d-sm-inline-block">
-                        Copyright © 2025 Hospital Management System. All rights
-                        reserved.
-                      </span>
-                      <span className="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">
-                        Designed and Developed by
-                        <a
-                          href="https://kavyainfoweb.com/"
-                          target="_blank"
-                          style={{
-                            textDecoration: "none",
-                            color: "rgb(2, 62, 62)",
-                          }}
-                        >
-                          Kavya Infoweb Pvt. Ltd.
-                        </a>
-                      </span>
-                    </div>
-                  </footer>
-                  {/* partial */}
-                </div>
-                {/* main-panel ends */}
-              </div>
-            </div>
-          </div>
+                     {/* Hospital Earnings */}
+<div className="col-lg-6 col-md-12 col-sm-12">
+  <div className="analytics-card hospital-earnings">
+    {/* Header */}
+    <div className="d-flex justify-content-between align-items-center mb-2">
+      <h6 className="mb-0 fw-bold">Hospital Earnings</h6>
+      <div>
+        <a href="#" className="ms-2 text-decoration-none">
+          View Report »
+        </a>
+      </div>
+    </div>
+    <hr />
+
+    {/* Content */}
+    <div className="row g-3">
+      {/* Online Consultation */}
+      <div className="col-sm-6 col-12">
+        <div className="p-3 border h-100" style={{ borderRadius: 1 }}>
+          <h5>
+            ₹4900 <small className="text-success">20% ↑</small>
+          </h5>
+          <p className="mb-0">Online Consultation</p>
         </div>
       </div>
+
+      {/* Overall Purchases */}
+      <div className="col-sm-6 col-12">
+        <div className="p-3 border h-100" style={{ borderRadius: 1 }}>
+          <h5>
+            ₹750 <small className="text-danger">26% ↓</small>
+          </h5>
+          <p className="mb-0">Overall Purchases</p>
+        </div>
+      </div>
+
+      {/* Pending Invoices */}
+      <div className="col-sm-6 col-12">
+        <div className="p-3 border h-100" style={{ borderRadius: 1 }}>
+          <h5>
+            ₹560 <small className="text-success">28% ↑</small>
+          </h5>
+          <p className="mb-0">Pending Invoices</p>
+        </div>
+      </div>
+
+      {/* Monthly Billing */}
+      <div className="col-sm-6 col-12">
+        <div className="p-3 border h-100" style={{ borderRadius: 1 }}>
+          <h5>
+            ₹390 <small className="text-success">30% ↑</small>
+          </h5>
+          <p className="mb-0">Monthly Billing</p>
+        </div>
+      </div>
+
+      {/* 🟦 Radiology Earnings */}
+      <div className="col-sm-6 col-12">
+        <div className="p-3 border h-100" style={{ borderRadius: 1 }}>
+          <h5>
+            ₹8200 <small className="text-success">18% ↑</small>
+          </h5>
+          <p className="mb-0">Radiology</p>
+        </div>
+      </div>
+
+      {/* 🟥 Pathology Earnings */}
+      <div className="col-sm-6 col-12">
+        <div className="p-3 border h-100" style={{ borderRadius: 1 }}>
+          <h5>
+            ₹6400 <small className="text-success">22% ↑</small>
+          </h5>
+          <p className="mb-0">Pathology</p>
+        </div>
+      </div>
+    </div>
+
+    <br />
+    <br />
+  </div>
+</div>
+
+                    </div>
+                    {/* ####################################################################### */}
+                  
+                 
+                  
+                
+                
+             
+            
+          </div>
+        
+     
     </>
   );
 };

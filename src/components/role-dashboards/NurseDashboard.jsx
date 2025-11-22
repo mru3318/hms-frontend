@@ -2,18 +2,28 @@ import React from "react";
 import "./Dashboard.css";
 import img from "/assets/images/dashboard/Headnurse.png";
 const NurseDashboard = () => {
+  
+   // ===== Dynamic Greeting Logic =====
+  const currentHour = new Date().getHours();
+  let greeting = "Good Morning";
+
+  if (currentHour >= 12 && currentHour < 16) {
+    greeting = "Good Afternoon";
+  } else if (currentHour >= 16) {
+    greeting = "Good Evening";
+  }
   return (
     <>
-      <div className="container my-3">
+      
         <div className="header-toolbar d-flex justify-content-between align-items-center">
           <div className="d-flex align-items-center">
             <a
               className="text-decoration-none text-dark d-flex align-items-center"
               href="#"
             >
-              <b>Welcome</b>
+              <b>Welcome Head Nurse</b>
             </a>
-            <span className="text-muted mx-2"> Head Nurse Dashboard </span>
+           
           </div>
           <div className="d-flex align-items-center">
             <button
@@ -26,12 +36,12 @@ const NurseDashboard = () => {
             </button>
           </div>
         </div>
-        <div className="container mt-4">
+        
           <div className="row">
             <div className="col-12">
               <div className="jumbotron-hero">
                 <div>
-                  <h5 className="fw-normal">Good Morning.</h5>
+                   <h5 className="fw-normal">{greeting}.</h5>
                   <h2 className="fw-bold">Head Nurse</h2>
                 </div>
                 <div className="card-container">
@@ -155,60 +165,79 @@ const NurseDashboard = () => {
           <div className="row g-4 mt-3">
             {/* LATEST NOTICES (Left) */}
             <div className="col-lg-6 col-md-12">
-              <div
-                className="analytics-card p-3"
-                style={{ height: 315, overflowY: "auto" }}
-              >
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h6 className="mb-0 fw-bold">LATEST NOTICES</h6>
-                  <div className="notice-header-tools">
-                    <span className="badge bg-danger">3 UNREAD</span>
-                    <a href="#" className="text-decoration-none">
-                      View All »
-                    </a>
-                  </div>
-                </div>
-                <hr />
-                <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                  <div className="d-flex align-items-center">
-                    <span className="text-primary me-2">
-                      <i className="fas fa-file-alt" />
-                    </span>
-                    <span className="fw-semibold">HR</span>
-                  </div>
-                  <small className="text-muted">1h ago</small>
-                </div>
-                <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                  <div className="d-flex align-items-center">
-                    <span className="text-warning me-2">
-                      <i className="fas fa-cog" />
-                    </span>
-                    <span className="fw-semibold">
-                      Shift Change Notification
-                    </span>
-                  </div>
-                  <small className="text-muted">2h ago</small>
-                </div>
-                <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                  <div className="d-flex align-items-center">
-                    <span className="text-primary me-2">
-                      <i className="fas fa-network-wired" />
-                    </span>
-                    <span className="fw-semibold">Announcement</span>
-                  </div>
-                  <small className="text-muted">1h ago</small>
-                </div>
-                <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                  <div className="d-flex align-items-center">
-                    <span className="text-primary me-2">
-                      <i className="fas fa-file" />
-                    </span>
-                    <span className="fw-semibold">General</span>
-                  </div>
-                  <small className="text-muted">Yesterday</small>
-                </div>
-              </div>
-            </div>
+  <div
+    className="analytics-card p-3"
+    style={{ height: 315, overflowY: "auto" }}
+  >
+    <div className="d-flex justify-content-between align-items-center mb-2">
+      <h6 className="mb-0 fw-bold">LATEST NOTICES</h6>
+      <div className="notice-header-tools">
+        <span className="badge bg-danger">3 UNREAD</span>
+        <a href="#" className="text-decoration-none">
+          View All »
+        </a>
+      </div>
+    </div>
+
+    <hr />
+
+    {/* HR Notice */}
+    <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
+      <div className="d-flex align-items-center">
+        <span className="text-primary me-2">
+          <i className="fas fa-file-alt" />
+        </span>
+        <span className="fw-semibold">HR</span>
+      </div>
+      <small className="text-muted">1h ago</small>
+    </div>
+
+    {/* Head Nurse Notice — NEW */}
+    <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
+      <div className="d-flex align-items-center">
+        <span className="text-success me-2">
+          <i className="fas fa-user-nurse" />
+        </span>
+        <span className="fw-semibold">Head Nurse Update</span>
+      </div>
+      <small className="text-muted">Just now</small>
+    </div>
+
+    {/* Shift Change */}
+    <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
+      <div className="d-flex align-items-center">
+        <span className="text-warning me-2">
+          <i className="fas fa-cog" />
+        </span>
+        <span className="fw-semibold">Shift Change Notification</span>
+      </div>
+      <small className="text-muted">2h ago</small>
+    </div>
+
+    {/* Announcement */}
+    <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
+      <div className="d-flex align-items-center">
+        <span className="text-primary me-2">
+          <i className="fas fa-network-wired" />
+        </span>
+        <span className="fw-semibold">Announcement</span>
+      </div>
+      <small className="text-muted">1h ago</small>
+    </div>
+
+    {/* General */}
+    <div className="notice-item d-flex justify-content-between align-items-center py-2 border-bottom">
+      <div className="d-flex align-items-center">
+        <span className="text-primary me-2">
+          <i className="fas fa-file" />
+        </span>
+        <span className="fw-semibold">General</span>
+      </div>
+      <small className="text-muted">Yesterday</small>
+    </div>
+  </div>
+</div>
+
             {/* PATIENT ASSIGNMENT (Right) */}
             <div className="col-lg-6 col-md-12">
               <div
@@ -260,26 +289,9 @@ const NurseDashboard = () => {
               </div>
             </div>
           </div>
-          {/* Footer */}
-          <footer className="footer mt-4">
-            <div className="d-sm-flex justify-content-center justify-content-sm-between">
-              <span className="text-muted text-center text-sm-left d-block d-sm-inline-block">
-                © 2025 Hospital Management System. All rights reserved.
-              </span>
-              <span className="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">
-                Designed by
-                <a
-                  href="https://kavyainfoweb.com/"
-                  target="_blank"
-                  style={{ textDecoration: "none", color: "rgb(2, 62, 62)" }}
-                >
-                  Kavya Infoweb Pvt. Ltd.
-                </a>
-              </span>
-            </div>
-          </footer>
-        </div>
-      </div>
+       
+        
+      
     </>
   );
 };

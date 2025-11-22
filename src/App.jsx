@@ -56,8 +56,84 @@ import EditNotice from "./components/notice/manage-notice/edit-notice/EditNotice
 import Settings from "./components/setting/Settings";
 import EditPatientAppointment from "./components/appointments/edit-appointments/EditPatientAppointment";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
+import {
+  hydrateAuth,
+  selectAuthStatus,
+  selectAuthRoles,
+  selectAuthPermissions,
+  selectAuthExpiry,
+  selectIsAuthenticated,
+  logout,
+} from "./features/authSlice.js";
 
 function App() {
+  const dispatch = useDispatch();
+  const status = useSelector(selectAuthStatus);
+  const roles = useSelector(selectAuthRoles);
+  const permissions = useSelector(selectAuthPermissions);
+
+  const expiresAt = useSelector(selectAuthExpiry);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const expiryAlertShownRef = React.useRef(false);
+
+  useEffect(() => {
+    if (!expiresAt || expiryAlertShownRef.current) return;
+
+    // normalize stored expiry (seconds or ms) to ms
+    const rawExp = expiresAt;
+    const expMs = rawExp < 1e12 ? rawExp * 1000 : rawExp;
+    if (expMs < Date.now()) {
+      expiryAlertShownRef.current = true;
+      dispatch(logout());
+
+      Swal.fire({
+        icon: "warning",
+        title: "Session Expired",
+        html: `
+          <p>Your session has expired. You will be redirected in <b><span id="countdown">6</span></b> seconds.</p>
+          <button id="loginBtn" class="swal2-confirm swal2-styled" style="background-color:#01c0c8;margin-top:10px;">
+            Login Again
+          </button>
+        `,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+          let seconds = 6;
+          const countdownEl = document.getElementById("countdown");
+          const interval = setInterval(() => {
+            seconds--;
+            if (countdownEl) countdownEl.textContent = seconds;
+            if (seconds <= 0) {
+              clearInterval(interval);
+              window.location.href = "/";
+            }
+          }, 1000);
+
+          const loginBtn = document.getElementById("loginBtn");
+          if (loginBtn) {
+            loginBtn.addEventListener("click", () => {
+              clearInterval(interval);
+              window.location.href = "/";
+            });
+          }
+        },
+      });
+    }
+  }, [expiresAt, isAuthenticated, dispatch]);
+
+  useEffect(() => {
+    console.log("Dispatching hydrateAuth...");
+
+    dispatch(hydrateAuth());
+  }, [dispatch]);
+
+  console.log("Auth status:", status);
+  console.log("Auth roles:", roles, "permissions:", permissions);
+
   const router = createBrowserRouter([
     {
       path: "/",

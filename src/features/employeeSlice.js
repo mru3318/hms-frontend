@@ -9,36 +9,35 @@ export const registerEmployee = createAsyncThunk(
     try {
       console.log("Employee Data to be sent:", employeeData);
 
-      let config = {};
+      // ✅ Extract token correctly
+      const stored = localStorage.getItem("auth"); // or "authUser" depending on your storage key
+      const token = stored ? JSON.parse(stored).token : null;
+
+      // ✅ Build headers with token
+      let headers = {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
 
       if (employeeData instanceof FormData) {
-        // If it's FormData (with files), send as multipart/form-data
-        // Don't set Content-Type manually, let browser set it with boundary
-        config = {
-          headers: {
-            // Let browser set Content-Type with boundary for FormData
-            "Content-Type": "multipart/form-data",
-          },
-        };
+        // If it's FormData (with files), let browser set boundary automatically
+        headers["Content-Type"] = "multipart/form-data";
       } else {
         // If it's a regular object (no files), send as JSON
-        config = {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        };
+        headers["Content-Type"] = "application/json";
       }
 
       const response = await axios.post(
         `${API_BASE_URL}/register/add`,
         employeeData,
-        config
+        { headers } // ✅ always include token + content-type
       );
+
       console.log("API Response:", response.data);
       return response.data;
     } catch (error) {
       console.error("Registration Error:", error);
       console.error("Error Response:", error.response?.data);
+
       // ✅ Return full error array if available
       if (error.response?.data) {
         return rejectWithValue(error.response.data);

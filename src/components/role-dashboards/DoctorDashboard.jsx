@@ -2,6 +2,16 @@ import React from "react";
 import "./Dashboard.css";
 import img from "/assets/images/dashboard/Doctor.png";
 const DoctorDashboard = () => {
+    // ===== Dynamic Greeting Logic =====
+  const currentHour = new Date().getHours();
+  let greeting = "Good Morning";
+
+  if (currentHour >= 12 && currentHour < 16) {
+    greeting = "Good Afternoon";
+  } else if (currentHour >= 16) {
+    greeting = "Good Evening";
+  }
+ 
   return (
     <>
       <div className="header-toolbar d-flex justify-content-between align-items-center">
@@ -11,9 +21,9 @@ const DoctorDashboard = () => {
             href="#"
           >
             <i className="fas fa-home me-2" />
-            Home
+           Welcome Doctor
           </a>
-          <span className="text-muted mx-2"> / Doctor Dashboard </span>
+          
         </div>
         <div className="d-flex align-items-center">
           <button
@@ -26,12 +36,13 @@ const DoctorDashboard = () => {
           </button>
         </div>
       </div>
-      <div className="container mt-4">
+      
         <div className="row">
           <div className="col-12">
             <div className="jumbotron-hero">
               <div>
-                <h5 className="fw-normal">Good Morning.</h5>
+                 {/* ===== Dynamic Greeting Here ===== */}
+            <h5 className="fw-normal">{greeting}.</h5>
                 <h2 className="fw-bold">Doctor</h2>
               </div>
               <div className="card-container">
@@ -75,7 +86,7 @@ const DoctorDashboard = () => {
         <div className="row g-4 mt-2">
           {/* ############################################################## */}
           {/* Add your code here....... */}
-          <div className="container-fluid">
+          
             <div className="row g-3 mt-0">
               {/* Appointments */}
               <div className="col-lg-3 col-md-6 col-sm-12">
@@ -292,34 +303,14 @@ const DoctorDashboard = () => {
               </div>
             </div>
             {/* ####################################################################### */}
-          </div>
+          
           {/* content-wrapper ends */}
           {/* partial:partials/_footer.html */}
-          <footer className="footer mt-4">
-            <div className="d-sm-flex justify-content-center justify-content-sm-between">
-              <span className="text-muted text-center text-sm-left d-block d-sm-inline-block">
-                Copyright © 2025 Hospital Management System. All rights
-                reserved.
-              </span>
-              <span className="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">
-                Designed and Developed by
-                <a
-                  href="https://kavyainfoweb.com/"
-                  target="_blank"
-                  style={{
-                    textDecoration: "none",
-                    color: "rgb(2, 62, 62)",
-                  }}
-                >
-                  Kavya Infoweb Pvt. Ltd.
-                </a>
-              </span>
-            </div>
-          </footer>
+        
           {/* partial */}
         </div>
         {/* main-panel ends */}
-      </div>
+      
     </>
   );
 };

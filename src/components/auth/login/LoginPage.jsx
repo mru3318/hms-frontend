@@ -21,7 +21,8 @@ const LoginPage = () => {
   // Redirect to dashboard when authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("dashboard");
+      // Use absolute path and replace history to avoid duplicate entries
+      navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -98,7 +99,10 @@ const LoginPage = () => {
 
                 if (res.meta && res.meta.requestStatus === "fulfilled") {
                   setSuccessMsg("Login successful! Redirecting...");
-                  setTimeout(() => navigate("/dashboard"), 800);
+                  setTimeout(
+                    () => navigate("/dashboard", { replace: true }),
+                    800
+                  );
                 } else {
                   // Handle 401 or invalid credentials gracefully
                   const errMsg =
